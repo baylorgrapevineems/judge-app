@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/submissions.json
+.env
+.env.local
+.env.*.local
+*.log
