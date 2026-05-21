@@ -13,9 +13,11 @@ function SecondsAgo({ since }) {
   return <span className="db-updated">Updated {secs}s ago</span>;
 }
 
+const EMPTY_INFO = { currentlyIn: '', comingUpNext: '', announcement: '' };
+
 export default function DisplayBoard() {
   const [teams, setTeams] = useState([]);
-  const [announcement, setAnnouncement] = useState('');
+  const [displayInfo, setDisplayInfo] = useState(EMPTY_INFO);
   const [lastFetch, setLastFetch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState(false);
@@ -25,7 +27,7 @@ export default function DisplayBoard() {
       .then((r) => r.json())
       .then((data) => {
         setTeams(data.teams || []);
-        setAnnouncement(data.announcement || '');
+        setDisplayInfo(data.displayInfo || EMPTY_INFO);
         setLastFetch(Date.now());
         setLoading(false);
         setFlash(true);
@@ -57,14 +59,6 @@ export default function DisplayBoard() {
           {lastFetch && <SecondsAgo since={lastFetch} />}
         </div>
       </div>
-
-      {/* Announcement Banner */}
-      {announcement && (
-        <div className="db-announcement">
-          <span className="db-announcement-icon">📢</span>
-          <span className="db-announcement-text">{announcement}</span>
-        </div>
-      )}
 
       {/* Body */}
       <div className="db-body">
@@ -128,6 +122,30 @@ export default function DisplayBoard() {
           </div>
         )}
       </div>
+
+      {/* Bottom info bars */}
+      {(displayInfo.currentlyIn || displayInfo.comingUpNext || displayInfo.announcement) && (
+        <div className="db-info-bars">
+          {displayInfo.currentlyIn && (
+            <div className="db-info-bar db-currently-in">
+              <span className="db-info-label">🎯 Currently In</span>
+              <span className="db-info-text">{displayInfo.currentlyIn}</span>
+            </div>
+          )}
+          {displayInfo.comingUpNext && (
+            <div className="db-info-bar db-coming-up-next">
+              <span className="db-info-label">⏭ Coming Up Next</span>
+              <span className="db-info-text">{displayInfo.comingUpNext}</span>
+            </div>
+          )}
+          {displayInfo.announcement && (
+            <div className="db-info-bar db-announcement">
+              <span className="db-info-label">📢 Announcement</span>
+              <span className="db-info-text">{displayInfo.announcement}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

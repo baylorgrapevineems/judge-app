@@ -394,16 +394,17 @@ const store = {
     if (kv) { await kv.set('teams', data); return; }
     fileWrite(path.join(DATA_DIR, 'teams.json'), data);
   },
-  async getAnnouncement() {
-    if (kv) return (await kv.get('announcement')) ?? '';
-    const f = path.join(DATA_DIR, 'announcement.json');
-    if (!fs.existsSync(f)) return '';
+  async getDisplayInfo() {
+    const empty = { currentlyIn: '', comingUpNext: '', announcement: '' };
+    if (kv) return (await kv.get('displayInfo')) ?? empty;
+    const f = path.join(DATA_DIR, 'displayInfo.json');
+    if (!fs.existsSync(f)) return empty;
     return JSON.parse(fs.readFileSync(f, 'utf-8'));
   },
-  async setAnnouncement(text) {
-    if (kv) { await kv.set('announcement', text); return; }
+  async setDisplayInfo(data) {
+    if (kv) { await kv.set('displayInfo', data); return; }
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fileWrite(path.join(DATA_DIR, 'announcement.json'), text);
+    fileWrite(path.join(DATA_DIR, 'displayInfo.json'), data);
   },
 };
 
@@ -449,8 +450,8 @@ app.get('/api/leaderboard', async (req, res) => {
       const pb = b.totalPossible > 0 ? b.totalNet / b.totalPossible : 0;
       return pb - pa;
     });
-    const announcement = await store.getAnnouncement();
-    res.json({ teams, announcement, updatedAt: new Date().toISOString() });
+    const displayInfo = await store.getDisplayInfo();
+    res.json({ teams, displayInfo, updatedAt: new Date().toISOString() });
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
@@ -471,9 +472,10 @@ app.post('/api/teams', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.put('/api/announcement', requireAdmin, async (req, res) => {
+app.put('/api/display-info', requireAdmin, async (req, res) => {
   try {
-    await store.setAnnouncement(req.body.text || '');
+    const current = await store.getDisplayInfo();
+    await store.setDisplayInfo({ ...current, ...req.body });
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });

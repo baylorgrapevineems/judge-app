@@ -257,70 +257,96 @@ function TeamsTab({ adminPassword, addToast }) {
   );
 }
 
-function AnnouncementControl({ adminPassword, addToast }) {
-  const [text, setText] = useState('');
+const EMPTY_DISPLAY = { currentlyIn: '', comingUpNext: '', announcement: '' };
+
+function DisplayInfoControl({ adminPassword, addToast }) {
+  const [info, setInfo] = useState(EMPTY_DISPLAY);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/leaderboard')
       .then((r) => r.json())
-      .then((data) => setText(data.announcement || ''))
+      .then((data) => setInfo(data.displayInfo || EMPTY_DISPLAY))
       .catch(() => {});
   }, []);
 
-  const save = async () => {
+  const setField = (key, val) => setInfo((prev) => ({ ...prev, [key]: val }));
+
+  const push = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/announcement', {
+      const res = await fetch('/api/display-info', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify(info),
       });
       if (!res.ok) throw new Error();
-      addToast('Announcement updated on display', 'success');
+      addToast('Display board updated', 'success');
     } catch {
-      addToast('Failed to update announcement', 'error');
+      addToast('Failed to update display', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const clear = async () => {
-    setText('');
+  const clearAll = async () => {
+    const cleared = EMPTY_DISPLAY;
+    setInfo(cleared);
     setSaving(true);
     try {
-      await fetch('/api/announcement', {
+      await fetch('/api/display-info', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
-        body: JSON.stringify({ text: '' }),
+        body: JSON.stringify(cleared),
       });
-      addToast('Announcement cleared', 'success');
+      addToast('Display bars cleared', 'success');
     } catch {
-      addToast('Failed to clear announcement', 'error');
+      addToast('Failed to clear display', 'error');
     } finally {
       setSaving(false);
     }
   };
+
+  const hasAny = info.currentlyIn || info.comingUpNext || info.announcement;
 
   return (
     <div className="card" style={{ marginBottom: '14px' }}>
-      <div className="card-header"><h2>📢 Display Board Announcement</h2></div>
-      <div className="card-body">
-        <div className="form-group" style={{ marginBottom: '8px' }}>
-          <textarea
-            placeholder="Type a message to show at the bottom of the display board (e.g. 'Lunch break – 30 minutes!'). Leave blank to hide."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={2}
+      <div className="card-header"><h2>📺 Display Board</h2></div>
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label style={{ color: '#16a34a', fontWeight: 700 }}>🎯 Currently In</label>
+          <input
+            type="text"
+            placeholder="e.g. Scenario 2 – Team Alpha"
+            value={info.currentlyIn}
+            onChange={(e) => setField('currentlyIn', e.target.value)}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label style={{ color: '#1d4ed8', fontWeight: 700 }}>⏭ Coming Up Next</label>
+          <input
+            type="text"
+            placeholder="e.g. Scenario 3 – Team Bravo"
+            value={info.comingUpNext}
+            onChange={(e) => setField('comingUpNext', e.target.value)}
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label style={{ color: '#b45309', fontWeight: 700 }}>📢 Announcement</label>
+          <input
+            type="text"
+            placeholder="e.g. Lunch break – 30 minutes!"
+            value={info.announcement}
+            onChange={(e) => setField('announcement', e.target.value)}
           />
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
+          <button className="btn btn-primary btn-sm" onClick={push} disabled={saving}>
             {saving ? 'Saving…' : '📺 Push to Display'}
           </button>
-          {text && (
-            <button className="btn btn-ghost btn-sm" onClick={clear} disabled={saving}>
-              ✕ Clear
+          {hasAny && (
+            <button className="btn btn-ghost btn-sm" onClick={clearAll} disabled={saving}>
+              ✕ Clear All
             </button>
           )}
         </div>
@@ -343,7 +369,7 @@ function LeaderboardTab({ adminPassword, addToast }) {
 
   if (loading) return (
     <>
-      <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
+      <DisplayInfoControl adminPassword={adminPassword} addToast={addToast} />
       <div className="loading-wrap"><div className="spinner" /><span>Loading…</span></div>
     </>
   );
@@ -369,7 +395,7 @@ function LeaderboardTab({ adminPassword, addToast }) {
   if (teams.length === 0) {
     return (
       <>
-        <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
+        <DisplayInfoControl adminPassword={adminPassword} addToast={addToast} />
         <div className="empty-state">
           <div className="empty-icon">🏆</div>
           <p>No submissions yet. Leaderboard will appear once scores are submitted.</p>
@@ -382,7 +408,7 @@ function LeaderboardTab({ adminPassword, addToast }) {
 
   return (
     <div>
-      <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
+      <DisplayInfoControl adminPassword={adminPassword} addToast={addToast} />
       <div className="alert alert-info" style={{ marginBottom: '16px' }}>
         Top 2 teams advance to finals. Combined score = sum of all submitted scenario scores.
       </div>
