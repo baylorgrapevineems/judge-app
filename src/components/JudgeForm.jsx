@@ -71,11 +71,26 @@ function scoreGrade(pct) {
   return 'poor';
 }
 
-const INITIAL_INFO = { teamName: '', judgeName: '', station: '', scenario: '' };
+function initScoreState(criteria) {
+  const scores = {};
+  const criticalFails = {};
+  criteria.sections.forEach((s) =>
+    s.criteria.forEach((c) => {
+      if (c.type === 'critical_fail') criticalFails[c.id] = false;
+      else scores[c.id] = 0;
+    })
+  );
+  return { scores, criticalFails };
+}
+
+const INITIAL_INFO = { teamName: '', judgeName: '', station: '' };
 
 export default function JudgeForm({ addToast }) {
+  const [scenarios, setScenarios] = useState([]);
+  const [scenariosLoading, setScenariosLoading] = useState(true);
+  const [selectedScenarioId, setSelectedScenarioId] = useState('');
   const [criteria, setCriteria] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [criteriaLoading, setCriteriaLoading] = useState(false);
   const [info, setInfo] = useState(INITIAL_INFO);
   const [scores, setScores] = useState({});
   const [criticalFails, setCriticalFails] = useState({});
@@ -84,25 +99,41 @@ export default function JudgeForm({ addToast }) {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    fetch('/api/criteria')
+    fetch('/api/scenarios')
+      .then((r) => r.json())
+      .then((data) => {
+        setScenarios(data);
+        setScenariosLoading(false);
+      })
+      .catch(() => {
+        addToast('Failed to load scenarios', 'error');
+        setScenariosLoading(false);
+      });
+  }, [addToast]);
+
+  const handleScenarioChange = useCallback((scenarioId) => {
+    if (!scenarioId) {
+      setSelectedScenarioId('');
+      setCriteria(null);
+      setScores({});
+      setCriticalFails({});
+      return;
+    }
+    setSelectedScenarioId(scenarioId);
+    setCriteria(null);
+    setCriteriaLoading(true);
+    fetch(`/api/criteria/${scenarioId}`)
       .then((r) => r.json())
       .then((data) => {
         setCriteria(data);
-        const initScores = {};
-        const initCF = {};
-        data.sections.forEach((s) =>
-          s.criteria.forEach((c) => {
-            if (c.type === 'critical_fail') initCF[c.id] = false;
-            else initScores[c.id] = 0;
-          })
-        );
-        setScores(initScores);
-        setCriticalFails(initCF);
-        setLoading(false);
+        const { scores: s, criticalFails: cf } = initScoreState(data);
+        setScores(s);
+        setCriticalFails(cf);
+        setCriteriaLoading(false);
       })
       .catch(() => {
         addToast('Failed to load criteria', 'error');
-        setLoading(false);
+        setCriteriaLoading(false);
       });
   }, [addToast]);
 
@@ -116,12 +147,25 @@ export default function JudgeForm({ addToast }) {
       addToast('Team name and judge name are required', 'error');
       return;
     }
+    if (!selectedScenarioId || !criteria) {
+      addToast('Please select a scenario before submitting', 'error');
+      return;
+    }
     setSubmitting(true);
+    const selectedScenario = scenarios.find((s) => s.id === selectedScenarioId);
     try {
       const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...info, scores, criticalFails, notes, totals: calcTotals(criteria, scores, criticalFails) }),
+        body: JSON.stringify({
+          ...info,
+          scenarioId: selectedScenarioId,
+          scenario: selectedScenario?.name || selectedScenarioId,
+          scores,
+          criticalFails,
+          notes,
+          totals: calcTotals(criteria, scores, criticalFails),
+        }),
       });
       if (!res.ok) throw new Error();
       setSubmitted(true);
@@ -129,16 +173,10 @@ export default function JudgeForm({ addToast }) {
       setTimeout(() => {
         setSubmitted(false);
         setInfo(INITIAL_INFO);
-        const initScores = {};
-        const initCF = {};
-        criteria.sections.forEach((s) =>
-          s.criteria.forEach((c) => {
-            if (c.type === 'critical_fail') initCF[c.id] = false;
-            else initScores[c.id] = 0;
-          })
-        );
-        setScores(initScores);
-        setCriticalFails(initCF);
+        setSelectedScenarioId('');
+        setCriteria(null);
+        setScores({});
+        setCriticalFails({});
         setNotes('');
       }, 2500);
     } catch {
@@ -147,22 +185,6 @@ export default function JudgeForm({ addToast }) {
       setSubmitting(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="loading-wrap">
-        <div className="spinner" />
-        <span>Loading criteria…</span>
-      </div>
-    );
-  }
-
-  if (!criteria) {
-    return <div className="alert alert-error">Could not load scoring criteria.</div>;
-  }
-
-  const { earned, possible, deductions, net, pct } = calcTotals(criteria, scores, criticalFails);
-  const grade = scoreGrade(pct);
 
   if (submitted) {
     return (
@@ -175,6 +197,10 @@ export default function JudgeForm({ addToast }) {
       </div>
     );
   }
+
+  const totals = criteria ? calcTotals(criteria, scores, criticalFails) : { earned: 0, possible: 0, deductions: 0, net: 0, pct: 0 };
+  const { earned, possible, deductions, net, pct } = totals;
+  const grade = scoreGrade(pct);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -223,22 +249,43 @@ export default function JudgeForm({ addToast }) {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="scenario">Scenario</label>
-              <input
+              <label htmlFor="scenario">Scenario *</label>
+              <select
                 id="scenario"
-                type="text"
-                placeholder="e.g. Cardiac Arrest"
-                value={info.scenario}
-                onChange={(e) => setField('scenario', e.target.value)}
-                autoComplete="off"
-              />
+                value={selectedScenarioId}
+                onChange={(e) => handleScenarioChange(e.target.value)}
+                disabled={scenariosLoading}
+                required
+              >
+                <option value="">
+                  {scenariosLoading ? 'Loading scenarios…' : '— Select a scenario —'}
+                </option>
+                {scenarios.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Criteria loading spinner */}
+      {criteriaLoading && (
+        <div className="loading-wrap">
+          <div className="spinner" />
+          <span>Loading criteria…</span>
+        </div>
+      )}
+
+      {/* Prompt to select scenario */}
+      {!criteriaLoading && !criteria && (
+        <div className="alert alert-info">
+          Select a scenario above to load its scoring criteria.
+        </div>
+      )}
+
       {/* Scoring Sections */}
-      {criteria.sections.map((section) => {
+      {criteria && criteria.sections.map((section) => {
         const isCritical = section.criteria.every((c) => c.type === 'critical_fail');
         const sectionEarned = section.criteria.reduce((sum, c) => {
           if (c.type === 'critical_fail') return sum;
@@ -301,23 +348,25 @@ export default function JudgeForm({ addToast }) {
       })}
 
       {/* Notes */}
-      <div className="card">
-        <div className="card-header">
-          <h2>📝 Notes</h2>
-        </div>
-        <div className="card-body">
-          <div className="form-group">
-            <textarea
-              placeholder="Optional: observations, feedback, notable actions…"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-            />
+      {criteria && (
+        <div className="card">
+          <div className="card-header">
+            <h2>📝 Notes</h2>
+          </div>
+          <div className="card-body">
+            <div className="form-group">
+              <textarea
+                placeholder="Optional: observations, feedback, notable actions…"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Deduction summary if any critical fails applied */}
+      {/* Deduction summary */}
       {deductions > 0 && (
         <div className="alert alert-error">
           ⚠️ Critical deductions applied: −{deductions} pts &nbsp;|&nbsp; Net score: {net} / {possible}
@@ -325,23 +374,27 @@ export default function JudgeForm({ addToast }) {
       )}
 
       {/* Submit */}
-      <button type="submit" className="btn btn-primary btn-lg" disabled={submitting} style={{ marginBottom: '80px' }}>
-        {submitting ? 'Submitting…' : `Submit Score (${net} / ${possible})`}
-      </button>
+      {criteria && (
+        <button type="submit" className="btn btn-primary btn-lg" disabled={submitting} style={{ marginBottom: '80px' }}>
+          {submitting ? 'Submitting…' : `Submit Score (${net} / ${possible})`}
+        </button>
+      )}
 
       {/* Sticky score bar */}
-      <div className="score-summary">
-        <div className="score-total-display">
-          <span className="label">Score</span>
-          <span className={`value score-${grade}`}>{net}<span style={{ fontSize: '1rem', fontWeight: 500 }}>/{possible}</span></span>
-        </div>
-        <div className="score-bar-wrap">
-          <div className="score-bar-bg">
-            <div className={`score-bar-fill score-${grade}`} style={{ width: `${Math.min(100, pct)}%` }} />
+      {criteria && (
+        <div className="score-summary">
+          <div className="score-total-display">
+            <span className="label">Score</span>
+            <span className={`value score-${grade}`}>{net}<span style={{ fontSize: '1rem', fontWeight: 500 }}>/{possible}</span></span>
           </div>
-          <div className="score-pct">{pct.toFixed(1)}%</div>
+          <div className="score-bar-wrap">
+            <div className="score-bar-bg">
+              <div className={`score-bar-fill score-${grade}`} style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            <div className="score-pct">{pct.toFixed(1)}%</div>
+          </div>
         </div>
-      </div>
+      )}
     </form>
   );
 }

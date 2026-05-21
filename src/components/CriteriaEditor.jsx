@@ -3,7 +3,7 @@ import { useState } from 'react';
 let idCounter = Date.now();
 const uid = () => `c_${++idCounter}`;
 
-export default function CriteriaEditor({ criteria, adminPassword, onSave, addToast }) {
+export default function CriteriaEditor({ criteria, scenarioId, adminPassword, onSave, addToast }) {
   const [sections, setSections] = useState(() => JSON.parse(JSON.stringify(criteria.sections)));
   const [saving, setSaving] = useState(false);
 
@@ -70,7 +70,7 @@ export default function CriteriaEditor({ criteria, adminPassword, onSave, addToa
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/criteria', {
+      const res = await fetch(`/api/criteria/${scenarioId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
         body: JSON.stringify({ sections }),

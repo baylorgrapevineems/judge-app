@@ -162,7 +162,7 @@ function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
   );
 }
 
-function SubmissionsTab({ adminPassword, criteria, addToast }) {
+function SubmissionsTab({ adminPassword, criteriaMap, addToast }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -296,7 +296,7 @@ function SubmissionsTab({ adminPassword, criteria, addToast }) {
           <SubmissionCard
             key={sub.id}
             sub={sub}
-            criteria={criteria}
+            criteria={criteriaMap[sub.scenarioId] || null}
             adminPassword={adminPassword}
             onDelete={handleDelete}
             addToast={addToast}
@@ -365,15 +365,27 @@ export default function AdminPanel({ addToast }) {
   const [adminPassword, setAdminPassword] = useState(() => sessionStorage.getItem('adminPwd') || '');
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem('adminPwd'));
   const [tab, setTab] = useState('submissions');
-  const [criteria, setCriteria] = useState(null);
+  const [scenarios, setScenarios] = useState([]);
+  const [criteriaMap, setCriteriaMap] = useState({});
+  const [editingScenarioId, setEditingScenarioId] = useState('');
 
   useEffect(() => {
-    if (authed) {
-      fetch('/api/criteria')
-        .then((r) => r.json())
-        .then(setCriteria)
-        .catch(() => addToast('Failed to load criteria', 'error'));
-    }
+    if (!authed) return;
+    fetch('/api/scenarios')
+      .then((r) => r.json())
+      .then(async (list) => {
+        setScenarios(list);
+        const entries = await Promise.all(
+          list.map((s) =>
+            fetch(`/api/criteria/${s.id}`)
+              .then((r) => r.json())
+              .then((c) => [s.id, c])
+          )
+        );
+        setCriteriaMap(Object.fromEntries(entries));
+        if (list.length > 0) setEditingScenarioId(list[0].id);
+      })
+      .catch(() => addToast('Failed to load scenarios', 'error'));
   }, [authed, addToast]);
 
   const handleAuth = (pwd) => {
@@ -406,15 +418,40 @@ export default function AdminPanel({ addToast }) {
       </div>
 
       {tab === 'submissions' && (
-        <SubmissionsTab adminPassword={adminPassword} criteria={criteria} addToast={addToast} />
+        <SubmissionsTab adminPassword={adminPassword} criteriaMap={criteriaMap} addToast={addToast} />
       )}
-      {tab === 'criteria' && criteria && (
-        <CriteriaEditor
-          criteria={criteria}
-          adminPassword={adminPassword}
-          onSave={(updated) => { setCriteria(updated); addToast('Criteria saved!', 'success'); }}
-          addToast={addToast}
-        />
+      {tab === 'criteria' && (
+        <>
+          <div className="card" style={{ marginBottom: '12px' }}>
+            <div className="card-body">
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label htmlFor="edit-scenario">Editing criteria for</label>
+                <select
+                  id="edit-scenario"
+                  value={editingScenarioId}
+                  onChange={(e) => setEditingScenarioId(e.target.value)}
+                >
+                  {scenarios.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          {editingScenarioId && criteriaMap[editingScenarioId] && (
+            <CriteriaEditor
+              key={editingScenarioId}
+              criteria={criteriaMap[editingScenarioId]}
+              scenarioId={editingScenarioId}
+              adminPassword={adminPassword}
+              onSave={(updated) => {
+                setCriteriaMap((prev) => ({ ...prev, [editingScenarioId]: updated }));
+                addToast('Criteria saved!', 'success');
+              }}
+              addToast={addToast}
+            />
+          )}
+        </>
       )}
     </>
   );
