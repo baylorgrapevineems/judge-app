@@ -106,7 +106,7 @@ export default function DisplayBoard() {
                           : 0;
                         return (
                           <div key={i} className="db-scenario-row">
-                            <span className="db-scenario-name">{sub.scenario}</span>
+                            <span className="db-scenario-name">{(sub.scenario || '').replace(/^(Scenario\s+\d+).*/i, '$1') || `Scenario ${i + 1}`}</span>
                             <span className="db-scenario-score">
                               {sub.net} / {sub.possible}
                               <span className="db-scenario-pct"> ({sp.toFixed(1)}%)</span>
