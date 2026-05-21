@@ -1229,6 +1229,77 @@ body {
   color: #f1f5f9;
 }
 
+/* ── Timer ── */
+.timer-elapsed {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.timer-elapsed.running {
+  color: #16a34a;
+  background: #dcfce7;
+}
+
+.timer-elapsed.stopped {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
+.btn-timer-start {
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-timer-start:hover { background: #15803d; }
+
+.btn-timer-stop {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-timer-stop:hover { background: #b91c1c; }
+
+.btn-timer-restart {
+  background: transparent;
+  color: var(--gray-500);
+  border: 1.5px solid var(--gray-300);
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 10px;
+}
+
+.btn-timer-restart:hover {
+  border-color: var(--gray-400);
+  color: var(--gray-700);
+}
+
+.timer-stopped-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .app-header h1 { font-size: 1rem; }

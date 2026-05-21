@@ -43,7 +43,16 @@ function ScoreStepper({ value, max, onChange }) {
   );
 }
 
-function calcTotals(criteria, scores, criticalFails) {
+const TIME_ON_SCENE_MAX = 10;
+
+function formatElapsed(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function calcTotals(criteria, scores, criticalFails, timeScore = 0) {
   let earned = 0;
   let possible = 0;
   let deductions = 0;
@@ -58,6 +67,9 @@ function calcTotals(criteria, scores, criticalFails) {
       }
     });
   });
+
+  possible += TIME_ON_SCENE_MAX;
+  earned += timeScore;
 
   const net = Math.max(0, earned - deductions);
   const pct = possible > 0 ? (net / possible) * 100 : 0;
@@ -99,6 +111,12 @@ export default function JudgeForm({ addToast }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Timer
+  const [timerState, setTimerState] = useState('idle'); // 'idle' | 'running' | 'stopped'
+  const [timerStart, setTimerStart] = useState(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [timeScore, setTimeScore] = useState(0);
+
   useEffect(() => {
     fetch('/api/teams').then((r) => r.json()).then((data) => setTeams(Array.isArray(data) ? data : [])).catch(() => {});
     fetch('/api/scenarios')
@@ -113,7 +131,29 @@ export default function JudgeForm({ addToast }) {
       });
   }, [addToast]);
 
+  useEffect(() => {
+    if (timerState !== 'running') return;
+    const id = setInterval(() => setElapsedMs(Date.now() - timerStart), 100);
+    return () => clearInterval(id);
+  }, [timerState, timerStart]);
+
+  const startTimer = useCallback(() => {
+    const now = Date.now();
+    setTimerStart(now);
+    setElapsedMs(0);
+    setTimeScore(0);
+    setTimerState('running');
+  }, []);
+
+  const stopTimer = useCallback(() => {
+    setTimerState('stopped');
+  }, []);
+
   const handleScenarioChange = useCallback((scenarioId) => {
+    setTimerState('idle');
+    setTimerStart(null);
+    setElapsedMs(0);
+    setTimeScore(0);
     if (!scenarioId) {
       setSelectedScenarioId('');
       setCriteria(null);
@@ -166,7 +206,9 @@ export default function JudgeForm({ addToast }) {
           scores,
           criticalFails,
           notes,
-          totals: calcTotals(criteria, scores, criticalFails),
+          elapsedSeconds: Math.floor(elapsedMs / 1000),
+          timeScore,
+          totals: calcTotals(criteria, scores, criticalFails, timeScore),
         }),
       });
       if (!res.ok) throw new Error();
@@ -180,6 +222,10 @@ export default function JudgeForm({ addToast }) {
         setScores({});
         setCriticalFails({});
         setNotes('');
+        setTimerState('idle');
+        setTimerStart(null);
+        setElapsedMs(0);
+        setTimeScore(0);
       }, 2500);
     } catch {
       addToast('Submission failed. Check server connection.', 'error');
@@ -200,7 +246,7 @@ export default function JudgeForm({ addToast }) {
     );
   }
 
-  const totals = criteria ? calcTotals(criteria, scores, criticalFails) : { earned: 0, possible: 0, deductions: 0, net: 0, pct: 0 };
+  const totals = criteria ? calcTotals(criteria, scores, criticalFails, timeScore) : { earned: 0, possible: 0, deductions: 0, net: 0, pct: 0 };
   const { earned, possible, deductions, net, pct } = totals;
   const grade = scoreGrade(pct);
 
@@ -266,6 +312,42 @@ export default function JudgeForm({ addToast }) {
           </div>
         </div>
       </div>
+
+      {/* Timer Card */}
+      {selectedScenarioId && (
+        <div className="card">
+          <div className="card-header">
+            <h2>⏱️ Scenario Timer</h2>
+            {timerState !== 'idle' && (
+              <span className={`timer-elapsed ${timerState}`}>{formatElapsed(elapsedMs)}</span>
+            )}
+          </div>
+          <div className="card-body">
+            {timerState === 'idle' && (
+              <button type="button" className="btn btn-timer-start" onClick={startTimer}>
+                ▶ Start Scenario
+              </button>
+            )}
+            {timerState === 'running' && (
+              <button type="button" className="btn btn-timer-stop" onClick={stopTimer}>
+                ⏹ Stop Scenario
+              </button>
+            )}
+            {timerState === 'stopped' && (
+              <div className="timer-stopped-wrap">
+                <div className="criterion-row">
+                  <span className="criterion-label">Appropriate time on scene</span>
+                  <span className="criterion-max">/{TIME_ON_SCENE_MAX}</span>
+                  <ScoreStepper value={timeScore} max={TIME_ON_SCENE_MAX} onChange={setTimeScore} />
+                </div>
+                <button type="button" className="btn btn-timer-restart" onClick={startTimer}>
+                  ↺ Restart Timer
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Criteria loading spinner */}
       {criteriaLoading && (
