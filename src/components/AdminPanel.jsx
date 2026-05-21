@@ -257,6 +257,78 @@ function TeamsTab({ adminPassword, addToast }) {
   );
 }
 
+function AnnouncementControl({ adminPassword, addToast }) {
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/leaderboard')
+      .then((r) => r.json())
+      .then((data) => setText(data.announcement || ''))
+      .catch(() => {});
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/announcement', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error();
+      addToast('Announcement updated on display', 'success');
+    } catch {
+      addToast('Failed to update announcement', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clear = async () => {
+    setText('');
+    setSaving(true);
+    try {
+      await fetch('/api/announcement', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
+        body: JSON.stringify({ text: '' }),
+      });
+      addToast('Announcement cleared', 'success');
+    } catch {
+      addToast('Failed to clear announcement', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ marginBottom: '14px' }}>
+      <div className="card-header"><h2>📢 Display Board Announcement</h2></div>
+      <div className="card-body">
+        <div className="form-group" style={{ marginBottom: '8px' }}>
+          <textarea
+            placeholder="Type a message to show at the bottom of the display board (e.g. 'Lunch break – 30 minutes!'). Leave blank to hide."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={2}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : '📺 Push to Display'}
+          </button>
+          {text && (
+            <button className="btn btn-ghost btn-sm" onClick={clear} disabled={saving}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LeaderboardTab({ adminPassword, addToast }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -269,7 +341,12 @@ function LeaderboardTab({ adminPassword, addToast }) {
       .catch(() => { addToast('Failed to load submissions', 'error'); setLoading(false); });
   }, [adminPassword, addToast]);
 
-  if (loading) return <div className="loading-wrap"><div className="spinner" /><span>Loading…</span></div>;
+  if (loading) return (
+    <>
+      <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
+      <div className="loading-wrap"><div className="spinner" /><span>Loading…</span></div>
+    </>
+  );
 
   // Group by team name (case-insensitive)
   const teamMap = {};
@@ -291,10 +368,13 @@ function LeaderboardTab({ adminPassword, addToast }) {
 
   if (teams.length === 0) {
     return (
-      <div className="empty-state">
-        <div className="empty-icon">🏆</div>
-        <p>No submissions yet. Leaderboard will appear once scores are submitted.</p>
-      </div>
+      <>
+        <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
+        <div className="empty-state">
+          <div className="empty-icon">🏆</div>
+          <p>No submissions yet. Leaderboard will appear once scores are submitted.</p>
+        </div>
+      </>
     );
   }
 
@@ -302,6 +382,7 @@ function LeaderboardTab({ adminPassword, addToast }) {
 
   return (
     <div>
+      <AnnouncementControl adminPassword={adminPassword} addToast={addToast} />
       <div className="alert alert-info" style={{ marginBottom: '16px' }}>
         Top 2 teams advance to finals. Combined score = sum of all submitted scenario scores.
       </div>

@@ -394,6 +394,17 @@ const store = {
     if (kv) { await kv.set('teams', data); return; }
     fileWrite(path.join(DATA_DIR, 'teams.json'), data);
   },
+  async getAnnouncement() {
+    if (kv) return (await kv.get('announcement')) ?? '';
+    const f = path.join(DATA_DIR, 'announcement.json');
+    if (!fs.existsSync(f)) return '';
+    return JSON.parse(fs.readFileSync(f, 'utf-8'));
+  },
+  async setAnnouncement(text) {
+    if (kv) { await kv.set('announcement', text); return; }
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fileWrite(path.join(DATA_DIR, 'announcement.json'), text);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -438,7 +449,8 @@ app.get('/api/leaderboard', async (req, res) => {
       const pb = b.totalPossible > 0 ? b.totalNet / b.totalPossible : 0;
       return pb - pa;
     });
-    res.json({ teams, updatedAt: new Date().toISOString() });
+    const announcement = await store.getAnnouncement();
+    res.json({ teams, announcement, updatedAt: new Date().toISOString() });
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
@@ -456,6 +468,13 @@ app.post('/api/teams', requireAdmin, async (req, res) => {
     teams.push(name.trim());
     await store.setTeams(teams);
     res.json({ success: true, teams });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
+app.put('/api/announcement', requireAdmin, async (req, res) => {
+  try {
+    await store.setAnnouncement(req.body.text || '');
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 

@@ -15,6 +15,7 @@ function SecondsAgo({ since }) {
 
 export default function DisplayBoard() {
   const [teams, setTeams] = useState([]);
+  const [announcement, setAnnouncement] = useState('');
   const [lastFetch, setLastFetch] = useState(null);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState(false);
@@ -24,6 +25,7 @@ export default function DisplayBoard() {
       .then((r) => r.json())
       .then((data) => {
         setTeams(data.teams || []);
+        setAnnouncement(data.announcement || '');
         setLastFetch(Date.now());
         setLoading(false);
         setFlash(true);
@@ -55,6 +57,14 @@ export default function DisplayBoard() {
           {lastFetch && <SecondsAgo since={lastFetch} />}
         </div>
       </div>
+
+      {/* Announcement Banner */}
+      {announcement && (
+        <div className="db-announcement">
+          <span className="db-announcement-icon">📢</span>
+          <span className="db-announcement-text">{announcement}</span>
+        </div>
+      )}
 
       {/* Body */}
       <div className="db-body">
