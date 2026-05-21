@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import JudgeForm from './components/JudgeForm';
 import AdminPanel from './components/AdminPanel';
+import DisplayBoard from './components/DisplayBoard';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -13,6 +14,21 @@ export default function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   }, []);
 
+  if (view === 'display') {
+    return (
+      <>
+        <DisplayBoard />
+        <button
+          className="db-exit-btn"
+          onClick={() => setView('judge')}
+          title="Exit display mode"
+        >
+          ✕
+        </button>
+      </>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -23,6 +39,12 @@ export default function App() {
             onClick={() => setView('judge')}
           >
             Judge
+          </button>
+          <button
+            className={`nav-btn ${view === 'display' ? 'active' : ''}`}
+            onClick={() => setView('display')}
+          >
+            📺 Display
           </button>
           <button
             className={`nav-btn ${view === 'admin' ? 'active' : ''}`}

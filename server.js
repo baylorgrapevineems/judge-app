@@ -416,6 +416,32 @@ app.post('/api/admin/verify', (req, res) => {
   else res.status(401).json({ error: 'Invalid password' });
 });
 
+app.get('/api/leaderboard', async (req, res) => {
+  try {
+    const submissions = await store.getSubmissions();
+    const teamMap = {};
+    submissions.forEach((sub) => {
+      const key = (sub.teamName || 'Unknown').toLowerCase().trim();
+      if (!teamMap[key]) {
+        teamMap[key] = { teamName: sub.teamName || 'Unknown', submissions: [], totalNet: 0, totalPossible: 0 };
+      }
+      teamMap[key].submissions.push({
+        scenario: sub.scenario || sub.scenarioId || 'Unknown',
+        net: sub.totals?.net ?? 0,
+        possible: sub.totals?.possible ?? 0,
+      });
+      teamMap[key].totalNet += sub.totals?.net ?? 0;
+      teamMap[key].totalPossible += sub.totals?.possible ?? 0;
+    });
+    const teams = Object.values(teamMap).sort((a, b) => {
+      const pa = a.totalPossible > 0 ? a.totalNet / a.totalPossible : 0;
+      const pb = b.totalPossible > 0 ? b.totalNet / b.totalPossible : 0;
+      return pb - pa;
+    });
+    res.json({ teams, updatedAt: new Date().toISOString() });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
 app.get('/api/teams', async (req, res) => {
   try { res.json(await store.getTeams()); }
   catch (e) { res.status(500).json({ error: 'Storage error' }); }
