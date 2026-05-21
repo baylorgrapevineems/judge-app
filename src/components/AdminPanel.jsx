@@ -45,8 +45,6 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
         <div className="detail-score-grid">
           <span className="detail-score-label">Judge</span>
           <span className="detail-score-val">{sub.judgeName || '—'}</span>
-          <span className="detail-score-label">Station</span>
-          <span className="detail-score-val">{sub.station || '—'}</span>
           <span className="detail-score-label">Scenario</span>
           <span className="detail-score-val">{sub.scenario || '—'}</span>
           <span className="detail-score-label">Submitted</span>
@@ -141,7 +139,7 @@ function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
         onKeyDown={(e) => e.key === 'Enter' && setOpen((v) => !v)}>
         <div>
           <div className="submission-team">{sub.teamName || 'Unknown Team'}</div>
-          <div className="submission-meta">{sub.judgeName || ''}{sub.station ? ` · ${sub.station}` : ''}{sub.scenario ? ` · ${sub.scenario}` : ''}</div>
+          <div className="submission-meta">{sub.judgeName || ''}{sub.scenario ? ` · ${sub.scenario}` : ''}</div>
           <div className="submission-meta">{formatDate(sub.timestamp)}</div>
         </div>
         <span className={`submission-score-badge badge-${grade}`}>
