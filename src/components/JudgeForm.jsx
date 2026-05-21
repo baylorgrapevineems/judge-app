@@ -95,7 +95,7 @@ function initScoreState(criteria) {
   return { scores, criticalFails };
 }
 
-const INITIAL_INFO = { teamName: '', judgeName: '' };
+const INITIAL_INFO = { teamName: '', judgeName: '', judgeDept: '', scenario: '' };
 
 export default function JudgeForm({ addToast }) {
   const [teams, setTeams] = useState([]);
@@ -288,8 +288,19 @@ export default function JudgeForm({ addToast }) {
                 autoComplete="off"
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="judgeDept">Department</label>
+              <input
+                id="judgeDept"
+                type="text"
+                placeholder="e.g. Grapevine Fire"
+                value={info.judgeDept}
+                onChange={(e) => setField('judgeDept', e.target.value)}
+                autoComplete="off"
+              />
+            </div>
           </div>
-          <div className="form-row">
+          <div className="form-row single">
             <div className="form-group">
               <label htmlFor="scenario">Scenario *</label>
               <select
