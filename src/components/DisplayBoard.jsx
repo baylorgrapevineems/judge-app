@@ -76,7 +76,7 @@ export default function DisplayBoard() {
         {!loading && teams.length > 0 && (
           <div className="db-teams">
             {teams.map((team, idx) => {
-              const advances = idx < 2;
+              const advances = idx < 3;
               const pct = team.totalPossible > 0
                 ? (team.totalNet / team.totalPossible) * 100
                 : 0;

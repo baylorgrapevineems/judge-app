@@ -539,11 +539,11 @@ function LeaderboardTab({ adminPassword, addToast }) {
     <div>
       <DisplayInfoControl adminPassword={adminPassword} addToast={addToast} />
       <div className="alert alert-info" style={{ marginBottom: '16px' }}>
-        Top 2 teams advance to finals. Combined score = sum of all submitted scenario scores.
+        Top 3 teams advance to finals. Combined score = sum of all submitted scenario scores.
       </div>
       {teams.map((team, idx) => {
         const rank = idx + 1;
-        const advances = rank <= 2;
+        const advances = rank <= 3;
         const pct = team.totalPossible > 0 ? (team.totalNet / team.totalPossible) * 100 : 0;
         const grade = pct >= 90 ? 'excellent' : pct >= 75 ? 'good' : pct >= 60 ? 'fair' : 'poor';
         return (
