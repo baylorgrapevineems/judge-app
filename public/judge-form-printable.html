@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMS Sim War – Judge Score Sheet</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    color: #111;
+    background: #fff;
+  }
+
+  /* ── Page ── */
+  .scenario-page {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 18px 22px 14px;
+    page-break-after: always;
+  }
+  .scenario-page:last-child { page-break-after: avoid; }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2.5px solid #1d4ed8;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .page-header-left .org { font-size: 8pt; color: #555; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .page-header-left .title { font-size: 15pt; font-weight: 900; color: #1d4ed8; line-height: 1.1; }
+  .page-header-left .subtitle { font-size: 9pt; color: #555; margin-top: 2px; }
+  .page-header-right { text-align: right; font-size: 8pt; color: #888; }
+
+  /* ── Info row ── */
+  .info-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .info-field label {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .info-field .write-line {
+    border-bottom: 1.5px solid #333;
+    height: 18px;
+    width: 100%;
+  }
+
+  /* ── Section ── */
+  .section { margin-bottom: 8px; }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1d4ed8;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 3px 3px 0 0;
+    font-size: 8.5pt;
+    font-weight: 700;
+  }
+  .section-header.critical-header { background: #7f1d1d; }
+  .section-pts { font-size: 7.5pt; font-weight: 600; opacity: 0.9; }
+
+  .criteria-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ccc;
+    border-top: none;
+  }
+  .criteria-table tr:nth-child(even) { background: #f8f9ff; }
+  .criteria-table td {
+    padding: 3px 7px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    font-size: 8.5pt;
+  }
+  .criteria-table tr:last-child td { border-bottom: none; }
+
+  .td-label { width: auto; }
+  .td-max {
+    width: 38px;
+    text-align: center;
+    color: #555;
+    font-size: 7.5pt;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .td-score {
+    width: 52px;
+    text-align: center;
+    padding: 2px 4px;
+  }
+  .score-box {
+    border: 1.5px solid #333;
+    border-radius: 3px;
+    width: 40px;
+    height: 20px;
+    display: inline-block;
+  }
+
+  /* Critical fail rows */
+  .cf-row td { background: #fff5f5 !important; }
+  .cf-check {
+    width: 30px;
+    text-align: center;
+  }
+  .cf-checkbox {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #7f1d1d;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .td-penalty {
+    width: 60px;
+    color: #b91c1c;
+    font-weight: 700;
+    font-size: 8pt;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── Time on scene ── */
+  .time-section { margin-bottom: 8px; }
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #ccc;
+    border-top: none;
+    padding: 5px 8px;
+    background: #f0fdf4;
+  }
+  .time-label { flex: 1; font-size: 8.5pt; font-weight: 600; }
+  .time-elapsed-box {
+    border: 1px solid #999;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 8.5pt;
+    width: 80px;
+    height: 22px;
+    background: #fff;
+  }
+  .time-elapsed-label { font-size: 7.5pt; color: #555; }
+
+  /* ── Notes ── */
+  .notes-section { margin-bottom: 10px; }
+  .notes-header {
+    background: #374151;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 3px 3px 0 0;
+    font-size: 8.5pt;
+    font-weight: 700;
+  }
+  .notes-box {
+    border: 1px solid #ccc;
+    border-top: none;
+    height: 52px;
+    width: 100%;
+    padding: 4px 8px;
+  }
+
+  /* ── Score summary ── */
+  .score-summary {
+    border: 2px solid #1d4ed8;
+    border-radius: 4px;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    background: #eff6ff;
+  }
+  .sum-field label {
+    display: block;
+    font-size: 7pt;
+    font-weight: 700;
+    color: #1d4ed8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+  .sum-field .sum-box {
+    border-bottom: 2px solid #1d4ed8;
+    height: 22px;
+    width: 100%;
+    font-size: 12pt;
+    font-weight: 900;
+    text-align: center;
+  }
+  .sum-field .sum-hint {
+    font-size: 7pt;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  /* ── Extra credit note ── */
+  .extra-note {
+    font-size: 7pt;
+    color: #777;
+    font-style: italic;
+    margin-bottom: 4px;
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { font-size: 9pt; }
+    .scenario-page {
+      padding: 12px 16px 10px;
+      page-break-after: always;
+    }
+    .scenario-page:last-child { page-break-after: avoid; }
+    .no-print { display: none !important; }
+  }
+
+  /* ── Screen-only ── */
+  @media screen {
+    body { background: #e5e7eb; }
+    .scenario-page {
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      margin-bottom: 32px;
+    }
+    .print-btn {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(29,78,216,0.4);
+      z-index: 999;
+    }
+    .print-btn:hover { background: #1e40af; }
+    .instructions {
+      max-width: 780px;
+      margin: 20px auto 0;
+      background: #dbeafe;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font-size: 12px;
+      color: #1e3a8a;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+
+<div class="instructions no-print">
+  <span style="font-size:18px">ℹ️</span>
+  <div>
+    <strong>To save as PDF:</strong> Click "Print / Save PDF" above → in the print dialog choose <em>Save as PDF</em> as the destination.
+    Set paper size to <strong>Letter</strong>, margins to <strong>None</strong> or <strong>Minimum</strong>, and enable <strong>Background graphics</strong> for colored headers.
+    Each scenario prints on its own page.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCENARIO 1 – CHF / Flash Pulmonary Edema
+     ═══════════════════════════════════════════════ -->
+<div class="scenario-page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="org">EMS Sim War – Judge Score Sheet</div>
+      <div class="title">Scenario 1 – CHF / Flash Pulmonary Edema</div>
+      <div class="subtitle">65yo male · sudden onset SOB · HTN/CAD · hypertensive crisis · A-fib with RVR</div>
+    </div>
+    <div class="page-header-right">Total possible: <strong>115 pts</strong></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-field"><label>Team Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Judge Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Date / Time</label><div class="write-line"></div></div>
+  </div>
+
+  <!-- General & Team Performance -->
+  <div class="section">
+    <div class="section-header"><span>General &amp; Team Performance</span><span class="section-pts">/ 19 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">BSI / PPE precautions taken</td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Scene safety verbalized and assessed</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Primary survey: Airway, Breathing, Circulation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SAMPLE / focused history obtained</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Team coordination and delegation of duties</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Assessment & Vitals -->
+  <div class="section">
+    <div class="section-header"><span>Assessment &amp; Vitals</span><span class="section-pts">/ 12 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Full set of vitals obtained (BP, HR, RR, SpO2, Capno, Temp, BGL)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">12-lead ECG obtained (no STEMI identified)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Manual BP obtained <em>[Extra Credit]</em></td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Respiratory Management -->
+  <div class="section">
+    <div class="section-header"><span>Respiratory Management</span><span class="section-pts">/ 16 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">CPAP/BiPAP initiated promptly</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">CPAP/BiPAP appropriately titrated</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">HFNC application <em>[Extra Credit]</em></td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Medications & Cardiac Management -->
+  <div class="section">
+    <div class="section-header"><span>Medications &amp; Cardiac Management</span><span class="section-pts">/ 14 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Aggressive SL/IV Nitroglycerin with titration</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">IV Cardizem for A-fib RVR rate control</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- RSI & Advanced Airway -->
+  <div class="section">
+    <div class="section-header"><span>RSI &amp; Advanced Airway</span><span class="section-pts">/ 38 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">CPAP failure recognized (AMS, max sats 80%); decision to intubate</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">RSI: Ketamine used as induction agent</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">RSI: Rocuronium used as paralytic</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SGA placed as bridge device prior to ET intubation</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">PEEP valve titrated to improve oxygenation</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Successful ET intubation (7–7.5 ET tube)</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Post-intubation capnography confirmed</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Re-sedation: Ketamine or Versed/Fentanyl (appropriate for elevated BP)</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Transport -->
+  <div class="section">
+    <div class="section-header"><span>Transport &amp; Reassessment</span><span class="section-pts">/ 6 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Transport to appropriate facility</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Constant reassessments performed en route</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Time on Scene -->
+  <div class="time-section">
+    <div class="section-header" style="background:#166534"><span>⏱ Appropriate Time on Scene</span><span class="section-pts">/ 10 pts</span></div>
+    <div class="time-row">
+      <span class="time-label">Elapsed scene time recorded:</span>
+      <span class="time-elapsed-label">MM:SS →</span>
+      <span class="time-elapsed-box"></span>
+      <span style="flex:1"></span>
+      <span class="time-elapsed-label">Score (0–10):</span>
+      <span class="score-box"></span>
+    </div>
+  </div>
+
+  <!-- Critical Criteria -->
+  <div class="section">
+    <div class="section-header critical-header"><span>⚠ Critical Criteria – Deductions (check if observed)</span></div>
+    <table class="criteria-table">
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Used Albuterol/Atrovent (contraindicated – worsens tachycardia/RVR)</td><td class="td-penalty">−15 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to initiate CPAP/BiPAP for severe respiratory distress</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Intubated without first attempting CPAP/BiPAP optimization</td><td class="td-penalty">−20 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Used wrong induction agent for RSI</td><td class="td-penalty">−15 pts</td></tr>
+    </table>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-section">
+    <div class="notes-header">📝 Notes / Observations</div>
+    <div class="notes-box"></div>
+  </div>
+
+  <!-- Score Summary -->
+  <div class="score-summary">
+    <div class="sum-field">
+      <label>Points Earned</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of all scored items</div>
+    </div>
+    <div class="sum-field">
+      <label>Deductions</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of critical penalties</div>
+    </div>
+    <div class="sum-field">
+      <label>Net Score</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Earned − Deductions</div>
+    </div>
+    <div class="sum-field">
+      <label>% Score (÷ 115)</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Net ÷ 115 × 100</div>
+    </div>
+  </div>
+
+</div><!-- /scenario-page -->
+
+
+<!-- ═══════════════════════════════════════════════
+     SCENARIO 2 – STEMI with VT Arrest
+     ═══════════════════════════════════════════════ -->
+<div class="scenario-page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="org">EMS Sim War – Judge Score Sheet</div>
+      <div class="title">Scenario 2 – STEMI with VT Arrest</div>
+      <div class="subtitle">55yo female · chest pain · paced rhythm with Scarbossa STEMI · VT cardiac arrest</div>
+    </div>
+    <div class="page-header-right">Total possible: <strong>150 pts</strong></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-field"><label>Team Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Judge Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Date / Time</label><div class="write-line"></div></div>
+  </div>
+
+  <!-- General -->
+  <div class="section">
+    <div class="section-header"><span>General &amp; Team Performance</span><span class="section-pts">/ 19 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">BSI / PPE precautions taken</td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Scene safety verbalized and assessed</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Primary survey: Airway, Breathing, Circulation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SAMPLE / focused history obtained</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Team coordination and delegation of duties</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Initial Assessment -->
+  <div class="section">
+    <div class="section-header"><span>Initial Assessment &amp; Vitals</span><span class="section-pts">/ 26 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Full set of vitals obtained</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Manual BP obtained <em>[Extra Credit]</em></td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Supplemental O2 for sat goal &gt;94%</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">12-lead ECG obtained and interpreted</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Scarbossa criteria + STEMI identified in paced rhythm</td><td class="td-max">/7</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SL Nitroglycerin administered with BP titration</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Cardiac Arrest -->
+  <div class="section">
+    <div class="section-header"><span>Cardiac Arrest Management</span><span class="section-pts">/ 39 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">CPR initiated immediately on arrest with timer started</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Alternating compressors every 2 minutes</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Metronome used for CPR rate feedback</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SGA placed with O2 and capnography at RR 10</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Pads placed (AP position preferred)</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Pre-charge and defibrillation at appropriate joules</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Continued pre-charge and pulse/rhythm check every 2 minutes</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Lucas device applied at rhythm check <em>[Extra Credit]</em></td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Medications -->
+  <div class="section">
+    <div class="section-header"><span>Medications</span><span class="section-pts">/ 15 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Amiodarone 300mg administered</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Amiodarone 150mg (2nd dose) with Epinephrine</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Capnography trending 25 → 45 monitored during CPR</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Post-ROSC -->
+  <div class="section">
+    <div class="section-header"><span>Post-ROSC Care</span><span class="section-pts">/ 23 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">ROSC confirmed; vitals reassessed</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Repeat 12-lead obtained – Scarbossa + STEMI identified</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Cath lab activated</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Pre-oxygenation with HFNC and NRB flush flow</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Did NOT BVM patient with adequate spontaneous RR of 14</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- RSI & Transport -->
+  <div class="section">
+    <div class="section-header"><span>RSI &amp; Transport</span><span class="section-pts">/ 18 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">RSI: Ketamine/paralytic for intubation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">ET intubation (7–7.5 ET tube) with capnography confirmed</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Re-sedation: Ketamine or Versed/Fentanyl</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Transport to appropriate facility with reassessments</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Time on Scene -->
+  <div class="time-section">
+    <div class="section-header" style="background:#166534"><span>⏱ Appropriate Time on Scene</span><span class="section-pts">/ 10 pts</span></div>
+    <div class="time-row">
+      <span class="time-label">Elapsed scene time recorded:</span>
+      <span class="time-elapsed-label">MM:SS →</span>
+      <span class="time-elapsed-box"></span>
+      <span style="flex:1"></span>
+      <span class="time-elapsed-label">Score (0–10):</span>
+      <span class="score-box"></span>
+    </div>
+  </div>
+
+  <!-- Critical -->
+  <div class="section">
+    <div class="section-header critical-header"><span>⚠ Critical Criteria – Deductions (check if observed)</span></div>
+    <table class="criteria-table">
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to initiate CPR immediately on cardiac arrest</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to defibrillate shockable VT/VF rhythm</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to activate cath lab post-ROSC with confirmed STEMI</td><td class="td-penalty">−20 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Moved hypoxic/hypotensive patient without optimization</td><td class="td-penalty">−15 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Wrong induction medications used for RSI</td><td class="td-penalty">−15 pts</td></tr>
+    </table>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-section">
+    <div class="notes-header">📝 Notes / Observations</div>
+    <div class="notes-box"></div>
+  </div>
+
+  <!-- Score Summary -->
+  <div class="score-summary">
+    <div class="sum-field">
+      <label>Points Earned</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of all scored items</div>
+    </div>
+    <div class="sum-field">
+      <label>Deductions</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of critical penalties</div>
+    </div>
+    <div class="sum-field">
+      <label>Net Score</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Earned − Deductions</div>
+    </div>
+    <div class="sum-field">
+      <label>% Score (÷ 150)</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Net ÷ 150 × 100</div>
+    </div>
+  </div>
+
+</div><!-- /scenario-page -->
+
+
+<!-- ═══════════════════════════════════════════════
+     SCENARIO 3 – MCI / Trauma (Construction Collapse)
+     ═══════════════════════════════════════════════ -->
+<div class="scenario-page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="org">EMS Sim War – Judge Score Sheet</div>
+      <div class="title">Scenario 3 – MCI / Trauma (Construction Collapse)</div>
+      <div class="subtitle">4 patients · 40ft fall from scaffolding · 3 asystole · 1 PEA · only crew on scene</div>
+    </div>
+    <div class="page-header-right">Total possible: <strong>140 pts</strong></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-field"><label>Team Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Judge Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Date / Time</label><div class="write-line"></div></div>
+  </div>
+
+  <!-- General -->
+  <div class="section">
+    <div class="section-header"><span>General &amp; Team Performance</span><span class="section-pts">/ 19 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">BSI / PPE precautions taken</td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Scene safety verbalized and assessed</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Primary survey: Airway, Breathing, Circulation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SAMPLE / focused history obtained</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Team coordination and delegation of duties</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Triage -->
+  <div class="section">
+    <div class="section-header"><span>Mass Casualty Triage</span><span class="section-pts">/ 20 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">3 asystole patients correctly called BLACK (no resuscitation)</td><td class="td-max">/10</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">No CPR performed on asystole/BLACK patients (resource preservation)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">PEA patient correctly identified as the salvageable patient</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Trauma Interventions -->
+  <div class="section">
+    <div class="section-header"><span>Trauma Interventions</span><span class="section-pts">/ 33 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Needle decompression or finger thoracostomies performed bilaterally</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Pericardiocentesis attempted</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Blood or crystalloids administered</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Pelvic binder applied</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Patient exposed; head-to-toe exam; c-spine considered</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SGA or ET tube placed at RR 10</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Resuscitation -->
+  <div class="section">
+    <div class="section-header"><span>Resuscitation</span><span class="section-pts">/ 20 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">CPR initiated AFTER other skills prioritized (correct sequencing)</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">ROSC achieved</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Full vitals including BGL obtained post-ROSC</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Bilateral chest seals applied (if finger thoracostomy used)</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Manual BP obtained <em>[Extra Credit]</em></td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Post-ROSC Optimization -->
+  <div class="section">
+    <div class="section-header"><span>Post-ROSC Optimization</span><span class="section-pts">/ 17 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Secondary assessment performed post-ROSC</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">TXA and calcium considered and administered</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">HFNC flush flow applied</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Sats optimized to ≥94% and SBP ≥90 (blood preferred over crystalloid)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- RSI & Transport -->
+  <div class="section">
+    <div class="section-header"><span>RSI &amp; Transport</span><span class="section-pts">/ 21 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">RSI: Ketamine/paralytic used for intubation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">ET intubation (7–7.5 ET tube)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Re-sedation with Ketamine (appropriate given hypotension)</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Transport to appropriate facility with constant reassessments</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">En route deterioration managed – ET tube burped or repositioned with improvement</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Time on Scene -->
+  <div class="time-section">
+    <div class="section-header" style="background:#166534"><span>⏱ Appropriate Time on Scene</span><span class="section-pts">/ 10 pts</span></div>
+    <div class="time-row">
+      <span class="time-label">Elapsed scene time recorded:</span>
+      <span class="time-elapsed-label">MM:SS →</span>
+      <span class="time-elapsed-box"></span>
+      <span style="flex:1"></span>
+      <span class="time-elapsed-label">Score (0–10):</span>
+      <span class="score-box"></span>
+    </div>
+  </div>
+
+  <!-- Critical -->
+  <div class="section">
+    <div class="section-header critical-header"><span>⚠ Critical Criteria – Deductions (check if observed)</span></div>
+    <table class="criteria-table">
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Performed CPR on non-survivable asystole patients (wasted resources)</td><td class="td-penalty">−20 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to decompress suspected tension pneumothorax</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to address hemorrhage control</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Moved hypoxic or hypotensive patient before optimization</td><td class="td-penalty">−15 pts</td></tr>
+    </table>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-section">
+    <div class="notes-header">📝 Notes / Observations</div>
+    <div class="notes-box"></div>
+  </div>
+
+  <!-- Score Summary -->
+  <div class="score-summary">
+    <div class="sum-field">
+      <label>Points Earned</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of all scored items</div>
+    </div>
+    <div class="sum-field">
+      <label>Deductions</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of critical penalties</div>
+    </div>
+    <div class="sum-field">
+      <label>Net Score</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Earned − Deductions</div>
+    </div>
+    <div class="sum-field">
+      <label>% Score (÷ 140)</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Net ÷ 140 × 100</div>
+    </div>
+  </div>
+
+</div><!-- /scenario-page -->
+
+
+<!-- ═══════════════════════════════════════════════
+     SCENARIO 4 – Eclampsia / OB Emergency (FINALS)
+     ═══════════════════════════════════════════════ -->
+<div class="scenario-page">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="org">EMS Sim War – Judge Score Sheet</div>
+      <div class="title">Scenario 4 – Eclampsia / OB Emergency <span style="font-size:10pt;background:#7f1d1d;color:#fff;padding:2px 8px;border-radius:3px;vertical-align:middle;font-weight:700;">FINALS ONLY</span></div>
+      <div class="subtitle">28yo female · 38wk pregnancy · active labor · prolapsed cord · seizure · eclampsia</div>
+    </div>
+    <div class="page-header-right">Total possible: <strong>133 pts</strong></div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-field"><label>Team Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Judge Name</label><div class="write-line"></div></div>
+    <div class="info-field"><label>Date / Time</label><div class="write-line"></div></div>
+  </div>
+
+  <!-- General -->
+  <div class="section">
+    <div class="section-header"><span>General &amp; Team Performance</span><span class="section-pts">/ 19 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">BSI / PPE precautions taken</td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Scene safety verbalized and assessed</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Primary survey: Airway, Breathing, Circulation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SAMPLE / focused history obtained</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Team coordination and delegation of duties</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Scene & Assessment -->
+  <div class="section">
+    <div class="section-header"><span>Scene &amp; Assessment</span><span class="section-pts">/ 11 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Scene cleared and patient protected during generalized seizure</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Full set of vitals obtained (BP, HR, RR, SpO2, Capno, Temp, BGL)</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Manual BP obtained <em>[Extra Credit]</em></td><td class="td-max">/2</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- OB Emergency -->
+  <div class="section">
+    <div class="section-header"><span>OB Emergency Management</span><span class="section-pts">/ 25 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Hand in vagina to manually relieve pressure on prolapsed cord</td><td class="td-max">/10</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Baby delivery managed appropriately</td><td class="td-max">/8</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Umbilical cord cut</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Second unit called for neonate care</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Eclampsia Treatment -->
+  <div class="section">
+    <div class="section-header"><span>Eclampsia Treatment</span><span class="section-pts">/ 28 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">Magnesium sulfate: 4g IV over 20 min OR 5g IM each buttock</td><td class="td-max">/10</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Magnesium maintenance drip continued at 2g/hr</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Benzodiazepine for seizure (Versed 10mg IM, 5mg IV, or equivalent)</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Labetalol 20mg IV for hypertensive emergency</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Labetalol dose doubled on repeat if BP not controlled</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Hemorrhage & Pre-Intubation -->
+  <div class="section">
+    <div class="section-header"><span>Hemorrhage &amp; Pre-Intubation Optimization</span><span class="section-pts">/ 20 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">TXA and calcium given for postpartum hemorrhage</td><td class="td-max">/6</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Blood/IVF administered</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SpO2 ≥94% achieved before intubation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">SBP ≥90 achieved before intubation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- RSI & Transport -->
+  <div class="section">
+    <div class="section-header"><span>RSI &amp; Transport</span><span class="section-pts">/ 20 pts</span></div>
+    <table class="criteria-table">
+      <tr><td class="td-label">RSI: Ketamine/paralytic for intubation</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">ET intubation (7–7.5 ET tube) with capnography</td><td class="td-max">/5</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Re-sedation with Ketamine</td><td class="td-max">/4</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Transport to appropriate facility</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+      <tr><td class="td-label">Constant reassessments en route</td><td class="td-max">/3</td><td class="td-score"><span class="score-box"></span></td></tr>
+    </table>
+  </div>
+
+  <!-- Time on Scene -->
+  <div class="time-section">
+    <div class="section-header" style="background:#166534"><span>⏱ Appropriate Time on Scene</span><span class="section-pts">/ 10 pts</span></div>
+    <div class="time-row">
+      <span class="time-label">Elapsed scene time recorded:</span>
+      <span class="time-elapsed-label">MM:SS →</span>
+      <span class="time-elapsed-box"></span>
+      <span style="flex:1"></span>
+      <span class="time-elapsed-label">Score (0–10):</span>
+      <span class="score-box"></span>
+    </div>
+  </div>
+
+  <!-- Critical -->
+  <div class="section">
+    <div class="section-header critical-header"><span>⚠ Critical Criteria – Deductions (check if observed)</span></div>
+    <table class="criteria-table">
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to manually relieve pressure on prolapsed cord</td><td class="td-penalty">−25 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Failed to administer Magnesium sulfate for eclampsia</td><td class="td-penalty">−20 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Moved hypoxic or hypotensive patient before optimization</td><td class="td-penalty">−20 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Intubated before achieving SpO2 ≥94% and SBP ≥90</td><td class="td-penalty">−15 pts</td></tr>
+      <tr class="cf-row"><td class="cf-check"><span class="cf-checkbox"></span></td><td class="td-label">Wrong induction/re-sedation medications used based on vitals</td><td class="td-penalty">−15 pts</td></tr>
+    </table>
+  </div>
+
+  <!-- Notes -->
+  <div class="notes-section">
+    <div class="notes-header">📝 Notes / Observations</div>
+    <div class="notes-box"></div>
+  </div>
+
+  <!-- Score Summary -->
+  <div class="score-summary">
+    <div class="sum-field">
+      <label>Points Earned</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of all scored items</div>
+    </div>
+    <div class="sum-field">
+      <label>Deductions</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Sum of critical penalties</div>
+    </div>
+    <div class="sum-field">
+      <label>Net Score</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Earned − Deductions</div>
+    </div>
+    <div class="sum-field">
+      <label>% Score (÷ 133)</label>
+      <div class="sum-box"></div>
+      <div class="sum-hint">Net ÷ 133 × 100</div>
+    </div>
+  </div>
+
+</div><!-- /scenario-page -->
+
+</body>
+</html>
