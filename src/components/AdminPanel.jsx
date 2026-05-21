@@ -53,6 +53,9 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, onUpdate, ad
   const [editScores, setEditScores] = useState({});
   const [editCriticalFails, setEditCriticalFails] = useState({});
   const [editNotes, setEditNotes] = useState('');
+  const [editJudgeName, setEditJudgeName] = useState('');
+  const [editJudgeDept, setEditJudgeDept] = useState('');
+  const [editTeamName, setEditTeamName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleDelete = async () => {
@@ -77,6 +80,9 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, onUpdate, ad
     setEditScores({ ...(sub.scores || {}) });
     setEditCriticalFails({ ...(sub.criticalFails || {}) });
     setEditNotes(sub.notes || '');
+    setEditJudgeName(sub.judgeName || '');
+    setEditJudgeDept(sub.judgeDept || '');
+    setEditTeamName(sub.teamName || '');
     setEditing(true);
   };
 
@@ -89,10 +95,10 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, onUpdate, ad
       const res = await fetch(`/api/submissions/${sub.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
-        body: JSON.stringify({ scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals }),
+        body: JSON.stringify({ scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals, judgeName: editJudgeName, judgeDept: editJudgeDept, teamName: editTeamName }),
       });
       if (!res.ok) throw new Error();
-      onUpdate(sub.id, { scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals });
+      onUpdate(sub.id, { scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals, judgeName: editJudgeName, judgeDept: editJudgeDept, teamName: editTeamName });
       setEditing(false);
       addToast('Submission updated', 'success');
     } catch {
@@ -108,7 +114,23 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, onUpdate, ad
     return (
       <div className="submission-detail">
         <div className="detail-section">
-          <div className="detail-section-title" style={{ color: 'var(--primary)' }}>✏️ Editing — {sub.teamName} · {sub.judgeName}</div>
+          <div className="detail-section-title" style={{ color: 'var(--primary)' }}>✏️ Editing Submission</div>
+          <div className="form-row" style={{ marginTop: '8px' }}>
+            <div className="form-group">
+              <label>Team</label>
+              <input type="text" value={editTeamName} onChange={(e) => setEditTeamName(e.target.value)} placeholder="Team name" />
+            </div>
+            <div className="form-group">
+              <label>Judge Name</label>
+              <input type="text" value={editJudgeName} onChange={(e) => setEditJudgeName(e.target.value)} placeholder="Judge name" />
+            </div>
+          </div>
+          <div className="form-row single" style={{ marginTop: '4px' }}>
+            <div className="form-group">
+              <label>Department</label>
+              <input type="text" value={editJudgeDept} onChange={(e) => setEditJudgeDept(e.target.value)} placeholder="Department" />
+            </div>
+          </div>
         </div>
 
         {criteria.sections.map((section) => (
