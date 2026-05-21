@@ -1,6 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import CriteriaEditor from './CriteriaEditor';
 
+function AdminScoreStepper({ value, max, onChange }) {
+  const handleInput = (e) => {
+    const v = parseInt(e.target.value, 10);
+    if (!isNaN(v)) onChange(Math.min(max, Math.max(0, v)));
+  };
+  return (
+    <div className="score-stepper">
+      <button type="button" className="stepper-btn" onClick={() => onChange(Math.max(0, value - 1))} disabled={value <= 0}>−</button>
+      <input type="number" className="stepper-input" value={value} min={0} max={max} onChange={handleInput} onBlur={handleInput} />
+      <button type="button" className="stepper-btn" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max}>+</button>
+    </div>
+  );
+}
+
+function calcTotals(criteria, scores, criticalFails, timeScore = 0) {
+  let earned = 0, possible = 0, deductions = 0;
+  criteria.sections.forEach((section) => {
+    section.criteria.forEach((c) => {
+      if (c.type === 'critical_fail') {
+        if (criticalFails?.[c.id]) deductions += c.penalty || 0;
+      } else {
+        possible += c.maxPoints || 0;
+        earned += scores?.[c.id] || 0;
+      }
+    });
+  });
+  if (timeScore > 0) { possible += 10; earned += timeScore; }
+  const net = Math.max(0, earned - deductions);
+  const pct = possible > 0 ? (net / possible) * 100 : 0;
+  return { earned, possible, deductions, net, pct };
+}
+
 function scoreGrade(pct) {
   if (pct >= 90) return 'excellent';
   if (pct >= 75) return 'good';
@@ -15,8 +47,13 @@ function formatDate(iso) {
     ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
-function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) {
+function SubmissionDetail({ sub, criteria, adminPassword, onDelete, onUpdate, addToast }) {
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editScores, setEditScores] = useState({});
+  const [editCriticalFails, setEditCriticalFails] = useState({});
+  const [editNotes, setEditNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Delete submission for ${sub.teamName}?`)) return;
@@ -36,7 +73,97 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
     }
   };
 
+  const startEdit = () => {
+    setEditScores({ ...(sub.scores || {}) });
+    setEditCriticalFails({ ...(sub.criticalFails || {}) });
+    setEditNotes(sub.notes || '');
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const newTotals = criteria
+      ? calcTotals(criteria, editScores, editCriticalFails, sub.timeScore || 0)
+      : sub.totals;
+    try {
+      const res = await fetch(`/api/submissions/${sub.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
+        body: JSON.stringify({ scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals }),
+      });
+      if (!res.ok) throw new Error();
+      onUpdate(sub.id, { scores: editScores, criticalFails: editCriticalFails, notes: editNotes, totals: newTotals });
+      setEditing(false);
+      addToast('Submission updated', 'success');
+    } catch {
+      addToast('Save failed', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const { totals, scores, criticalFails, notes } = sub;
+
+  if (editing && criteria) {
+    return (
+      <div className="submission-detail">
+        <div className="detail-section">
+          <div className="detail-section-title" style={{ color: 'var(--primary)' }}>✏️ Editing — {sub.teamName} · {sub.judgeName}</div>
+        </div>
+
+        {criteria.sections.map((section) => (
+          <div className="detail-section" key={section.id}>
+            <div className="detail-section-title">{section.name}</div>
+            {section.criteria.map((c) => {
+              if (c.type === 'critical_fail') {
+                const applied = editCriticalFails[c.id] || false;
+                return (
+                  <div className="critical-row" key={c.id}>
+                    <div className="critical-check-wrap">
+                      <input type="checkbox" id={`ecf-${c.id}`} checked={applied}
+                        onChange={(e) => setEditCriticalFails((p) => ({ ...p, [c.id]: e.target.checked }))} />
+                    </div>
+                    <label className={`critical-label ${applied ? 'applied' : ''}`} htmlFor={`ecf-${c.id}`}>{c.label}</label>
+                    {applied && <span className="critical-penalty">−{c.penalty} pts</span>}
+                  </div>
+                );
+              }
+              return (
+                <div className="criterion-row" key={c.id}>
+                  <span className="criterion-label" style={{ fontSize: '0.85rem' }}>{c.label}</span>
+                  <span className="criterion-max">/{c.maxPoints}</span>
+                  <AdminScoreStepper
+                    value={editScores[c.id] ?? 0}
+                    max={c.maxPoints}
+                    onChange={(v) => setEditScores((p) => ({ ...p, [c.id]: v }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        <div className="detail-section">
+          <div className="detail-section-title">Notes</div>
+          <textarea
+            value={editNotes}
+            onChange={(e) => setEditNotes(e.target.value)}
+            rows={3}
+            style={{ width: '100%', padding: '8px 10px', border: '1.5px solid var(--gray-300)', borderRadius: 'var(--radius-sm)', fontSize: '0.875rem', resize: 'vertical' }}
+          />
+        </div>
+
+        <div className="detail-actions">
+          <button className="btn btn-success btn-sm" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : '💾 Save Changes'}
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setEditing(false)} disabled={saving}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="submission-detail">
@@ -54,9 +181,7 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
 
       {criteria && criteria.sections.map((section) => {
         const items = section.criteria.filter((c) =>
-          c.type === 'critical_fail'
-            ? criticalFails?.[c.id]
-            : scores?.[c.id] !== undefined
+          c.type === 'critical_fail' ? criticalFails?.[c.id] : scores?.[c.id] !== undefined
         );
         if (!items.length) return null;
         return (
@@ -76,9 +201,7 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
                 return (
                   <>
                     <span key={`${c.id}-l`} className="detail-score-label">{c.label}</span>
-                    <span key={`${c.id}-v`} className="detail-score-val">
-                      {scores[c.id]} / {c.maxPoints}
-                    </span>
+                    <span key={`${c.id}-v`} className="detail-score-val">{scores[c.id]} / {c.maxPoints}</span>
                   </>
                 );
               })}
@@ -113,11 +236,10 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
       )}
 
       <div className="detail-actions">
-        <button
-          className="btn btn-danger btn-sm"
-          onClick={handleDelete}
-          disabled={deleting}
-        >
+        {criteria && (
+          <button className="btn btn-primary btn-sm" onClick={startEdit}>✏️ Edit Scores</button>
+        )}
+        <button className="btn btn-danger btn-sm" onClick={handleDelete} disabled={deleting}>
           {deleting ? 'Deleting…' : '🗑 Delete'}
         </button>
       </div>
@@ -125,13 +247,19 @@ function SubmissionDetail({ sub, criteria, adminPassword, onDelete, addToast }) 
   );
 }
 
-function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
+function SubmissionCard({ sub: initialSub, criteria, adminPassword, onDelete, onUpdate, addToast }) {
   const [open, setOpen] = useState(false);
+  const [sub, setSub] = useState(initialSub);
   const totals = sub.totals || {};
   const net = totals.net ?? 0;
   const possible = totals.possible ?? 0;
   const pct = possible > 0 ? (net / possible) * 100 : 0;
   const grade = scoreGrade(pct);
+
+  const handleUpdate = (id, updates) => {
+    setSub((prev) => ({ ...prev, ...updates }));
+    onUpdate(id, updates);
+  };
 
   return (
     <div className="submission-card">
@@ -153,6 +281,7 @@ function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
           criteria={criteria}
           adminPassword={adminPassword}
           onDelete={onDelete}
+          onUpdate={handleUpdate}
           addToast={addToast}
         />
       )}
@@ -477,6 +606,7 @@ function SubmissionsTab({ adminPassword, criteriaMap, addToast }) {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = (id) => setSubmissions((prev) => prev.filter((s) => s.id !== id));
+  const handleUpdate = (id, updates) => setSubmissions((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s));
 
   const handleClearAll = async () => {
     if (!confirm('Delete ALL submissions? This cannot be undone.')) return;
@@ -591,6 +721,7 @@ function SubmissionsTab({ adminPassword, criteriaMap, addToast }) {
             criteria={criteriaMap[sub.scenarioId] || null}
             adminPassword={adminPassword}
             onDelete={handleDelete}
+            onUpdate={handleUpdate}
             addToast={addToast}
           />
         ))

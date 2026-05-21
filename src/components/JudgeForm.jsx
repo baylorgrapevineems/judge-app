@@ -110,6 +110,15 @@ export default function JudgeForm({ addToast }) {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState(new Set());
+
+  const toggleSection = useCallback((id) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
 
   // Timer
   const [timerState, setTimerState] = useState('idle'); // 'idle' | 'running' | 'stopped'
@@ -163,6 +172,7 @@ export default function JudgeForm({ addToast }) {
     }
     setSelectedScenarioId(scenarioId);
     setCriteria(null);
+    setCollapsedSections(new Set());
     setCriteriaLoading(true);
     fetch(`/api/criteria/${scenarioId}`)
       .then((r) => r.json())
@@ -171,6 +181,7 @@ export default function JudgeForm({ addToast }) {
         const { scores: s, criticalFails: cf } = initScoreState(data);
         setScores(s);
         setCriticalFails(cf);
+        setCollapsedSections(new Set(data.sections.map((sec) => sec.id)));
         setCriteriaLoading(false);
       })
       .catch(() => {
@@ -221,6 +232,7 @@ export default function JudgeForm({ addToast }) {
         setCriteria(null);
         setScores({});
         setCriticalFails({});
+        setCollapsedSections(new Set());
         setNotes('');
         setTimerState('idle');
         setTimerStart(null);
@@ -376,16 +388,27 @@ export default function JudgeForm({ addToast }) {
           return sum + (c.maxPoints || 0);
         }, 0);
 
+        const isCollapsed = collapsedSections.has(section.id);
         return (
           <div className="card" key={section.id}>
-            <div className="card-header">
+            <div
+              className="card-header card-header-toggle"
+              onClick={() => toggleSection(section.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && toggleSection(section.id)}
+            >
               <h2>{isCritical ? '⚠️' : '📊'} {section.name}</h2>
-              {!isCritical && sectionMax > 0 && (
-                <span className="section-points">
-                  {sectionEarned} / {sectionMax} pts
-                </span>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {!isCritical && sectionMax > 0 && (
+                  <span className="section-points">
+                    {sectionEarned} / {sectionMax} pts
+                  </span>
+                )}
+                <span className={`expand-icon ${isCollapsed ? '' : 'open'}`}>▼</span>
+              </div>
             </div>
+            {!isCollapsed && (
             <div className="card-body" style={{ padding: '0 16px' }}>
               {section.criteria.map((c) => {
                 if (c.type === 'critical_fail') {
@@ -423,6 +446,7 @@ export default function JudgeForm({ addToast }) {
                 );
               })}
             </div>
+            )}
           </div>
         );
       })}
