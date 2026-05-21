@@ -23,6 +23,17 @@ const DEFAULT_SCENARIOS = [
     description: '65yo male, sudden onset SOB, HTN/CAD, hypertensive crisis, A-fib with RVR',
     sections: [
       {
+        id: 's1_general',
+        name: 'General & Team Performance',
+        criteria: [
+          { id: 's1_gen_bsi', label: 'BSI / PPE precautions taken', maxPoints: 2, type: 'points' },
+          { id: 's1_gen_scene', label: 'Scene safety verbalized and assessed', maxPoints: 3, type: 'points' },
+          { id: 's1_gen_primary', label: 'Primary survey: Airway, Breathing, Circulation', maxPoints: 5, type: 'points' },
+          { id: 's1_gen_history', label: 'SAMPLE / focused history obtained', maxPoints: 4, type: 'points' },
+          { id: 's1_gen_team', label: 'Team coordination and delegation of duties', maxPoints: 5, type: 'points' },
+        ],
+      },
+      {
         id: 's1_assessment',
         name: 'Assessment & Vitals',
         criteria: [
@@ -87,6 +98,17 @@ const DEFAULT_SCENARIOS = [
     name: 'Scenario 2 – STEMI with VT Arrest',
     description: '55yo female, chest pain, paced rhythm with Scarbossa STEMI, VT cardiac arrest',
     sections: [
+      {
+        id: 's2_general',
+        name: 'General & Team Performance',
+        criteria: [
+          { id: 's2_gen_bsi', label: 'BSI / PPE precautions taken', maxPoints: 2, type: 'points' },
+          { id: 's2_gen_scene', label: 'Scene safety verbalized and assessed', maxPoints: 3, type: 'points' },
+          { id: 's2_gen_primary', label: 'Primary survey: Airway, Breathing, Circulation', maxPoints: 5, type: 'points' },
+          { id: 's2_gen_history', label: 'SAMPLE / focused history obtained', maxPoints: 4, type: 'points' },
+          { id: 's2_gen_team', label: 'Team coordination and delegation of duties', maxPoints: 5, type: 'points' },
+        ],
+      },
       {
         id: 's2_assessment',
         name: 'Initial Assessment & Vitals',
@@ -162,6 +184,17 @@ const DEFAULT_SCENARIOS = [
     description: '4 patients, 40ft fall from scaffolding; 3 asystole, 1 PEA – only crew on scene',
     sections: [
       {
+        id: 's3_general',
+        name: 'General & Team Performance',
+        criteria: [
+          { id: 's3_gen_bsi', label: 'BSI / PPE precautions taken', maxPoints: 2, type: 'points' },
+          { id: 's3_gen_scene', label: 'Scene safety verbalized and assessed', maxPoints: 3, type: 'points' },
+          { id: 's3_gen_primary', label: 'Primary survey: Airway, Breathing, Circulation', maxPoints: 5, type: 'points' },
+          { id: 's3_gen_history', label: 'SAMPLE / focused history obtained', maxPoints: 4, type: 'points' },
+          { id: 's3_gen_team', label: 'Team coordination and delegation of duties', maxPoints: 5, type: 'points' },
+        ],
+      },
+      {
         id: 's3_triage',
         name: 'Mass Casualty Triage',
         criteria: [
@@ -231,6 +264,17 @@ const DEFAULT_SCENARIOS = [
     name: 'Scenario 4 – Eclampsia / OB Emergency',
     description: '28yo female, 38wk pregnancy, active labor, prolapsed cord, seizure, eclampsia',
     sections: [
+      {
+        id: 's4_general',
+        name: 'General & Team Performance',
+        criteria: [
+          { id: 's4_gen_bsi', label: 'BSI / PPE precautions taken', maxPoints: 2, type: 'points' },
+          { id: 's4_gen_scene', label: 'Scene safety verbalized and assessed', maxPoints: 3, type: 'points' },
+          { id: 's4_gen_primary', label: 'Primary survey: Airway, Breathing, Circulation', maxPoints: 5, type: 'points' },
+          { id: 's4_gen_history', label: 'SAMPLE / focused history obtained', maxPoints: 4, type: 'points' },
+          { id: 's4_gen_team', label: 'Team coordination and delegation of duties', maxPoints: 5, type: 'points' },
+        ],
+      },
       {
         id: 's4_scene',
         name: 'Scene & Assessment',
