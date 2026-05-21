@@ -89,7 +89,7 @@ function initScoreState(criteria) {
   criteria.sections.forEach((s) =>
     s.criteria.forEach((c) => {
       if (c.type === 'critical_fail') criticalFails[c.id] = false;
-      else scores[c.id] = 0;
+      else scores[c.id] = c.maxPoints || 0;
     })
   );
   return { scores, criticalFails };
@@ -110,15 +110,6 @@ export default function JudgeForm({ addToast }) {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState(new Set());
-
-  const toggleSection = useCallback((id) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }, []);
 
   // Timer
   const [timerState, setTimerState] = useState('idle'); // 'idle' | 'running' | 'stopped'
@@ -150,7 +141,6 @@ export default function JudgeForm({ addToast }) {
     const now = Date.now();
     setTimerStart(now);
     setElapsedMs(0);
-    setTimeScore(0);
     setTimerState('running');
   }, []);
 
@@ -172,7 +162,7 @@ export default function JudgeForm({ addToast }) {
     }
     setSelectedScenarioId(scenarioId);
     setCriteria(null);
-    setCollapsedSections(new Set());
+    setTimeScore(TIME_ON_SCENE_MAX);
     setCriteriaLoading(true);
     fetch(`/api/criteria/${scenarioId}`)
       .then((r) => r.json())
@@ -181,7 +171,6 @@ export default function JudgeForm({ addToast }) {
         const { scores: s, criticalFails: cf } = initScoreState(data);
         setScores(s);
         setCriticalFails(cf);
-        setCollapsedSections(new Set(data.sections.map((sec) => sec.id)));
         setCriteriaLoading(false);
       })
       .catch(() => {
@@ -232,12 +221,11 @@ export default function JudgeForm({ addToast }) {
         setCriteria(null);
         setScores({});
         setCriticalFails({});
-        setCollapsedSections(new Set());
         setNotes('');
         setTimerState('idle');
         setTimerStart(null);
         setElapsedMs(0);
-        setTimeScore(0);
+        setTimeScore(TIME_ON_SCENE_MAX);
       }, 2500);
     } catch {
       addToast('Submission failed. Check server connection.', 'error');
@@ -335,28 +323,29 @@ export default function JudgeForm({ addToast }) {
             )}
           </div>
           <div className="card-body">
-            {timerState === 'idle' && (
-              <button type="button" className="btn btn-timer-start" onClick={startTimer}>
-                ▶ Start Scenario
-              </button>
-            )}
-            {timerState === 'running' && (
-              <button type="button" className="btn btn-timer-stop" onClick={stopTimer}>
-                ⏹ Stop Scenario
-              </button>
-            )}
-            {timerState === 'stopped' && (
-              <div className="timer-stopped-wrap">
-                <div className="criterion-row">
-                  <span className="criterion-label">Appropriate time on scene</span>
-                  <span className="criterion-max">/{TIME_ON_SCENE_MAX}</span>
-                  <ScoreStepper value={timeScore} max={TIME_ON_SCENE_MAX} onChange={setTimeScore} />
-                </div>
+            <div className="criterion-row" style={{ marginBottom: '10px' }}>
+              <span className="criterion-label">Appropriate time on scene</span>
+              <span className="criterion-max">/{TIME_ON_SCENE_MAX}</span>
+              <ScoreStepper value={timeScore} max={TIME_ON_SCENE_MAX} onChange={setTimeScore} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {timerState === 'idle' && (
+                <button type="button" className="btn btn-timer-start" onClick={startTimer}>
+                  ▶ Start Timer
+                </button>
+              )}
+              {timerState === 'running' && (
+                <button type="button" className="btn btn-timer-stop" onClick={stopTimer}>
+                  ⏹ Stop Timer
+                </button>
+              )}
+              {timerState === 'stopped' && (
                 <button type="button" className="btn btn-timer-restart" onClick={startTimer}>
                   ↺ Restart Timer
                 </button>
-              </div>
-            )}
+              )}
+              <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)' }}>Timer is optional</span>
+            </div>
           </div>
         </div>
       )}
@@ -388,27 +377,16 @@ export default function JudgeForm({ addToast }) {
           return sum + (c.maxPoints || 0);
         }, 0);
 
-        const isCollapsed = collapsedSections.has(section.id);
         return (
           <div className="card" key={section.id}>
-            <div
-              className="card-header card-header-toggle"
-              onClick={() => toggleSection(section.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && toggleSection(section.id)}
-            >
+            <div className="card-header">
               <h2>{isCritical ? '⚠️' : '📊'} {section.name}</h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {!isCritical && sectionMax > 0 && (
-                  <span className="section-points">
-                    {sectionEarned} / {sectionMax} pts
-                  </span>
-                )}
-                <span className={`expand-icon ${isCollapsed ? '' : 'open'}`}>▼</span>
-              </div>
+              {!isCritical && sectionMax > 0 && (
+                <span className="section-points">
+                  {sectionEarned} / {sectionMax} pts
+                </span>
+              )}
             </div>
-            {!isCollapsed && (
             <div className="card-body" style={{ padding: '0 16px' }}>
               {section.criteria.map((c) => {
                 if (c.type === 'critical_fail') {
@@ -446,7 +424,6 @@ export default function JudgeForm({ addToast }) {
                 );
               })}
             </div>
-            )}
           </div>
         );
       })}
