@@ -257,7 +257,7 @@ export default function JudgeForm({ addToast }) {
                   {scenariosLoading ? 'Loading scenarios…' : '— Select a scenario —'}
                 </option>
                 {scenarios.map((s) => (
-                  <option key={s.id} value={s.id} disabled={s.finalsOnly}>
+                  <option key={s.id} value={s.id}>
                     {s.name}{s.finalsOnly ? ' — FINALS ONLY' : ''}
                   </option>
                 ))}
