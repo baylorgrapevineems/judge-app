@@ -160,6 +160,103 @@ function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
   );
 }
 
+function TeamsTab({ adminPassword, addToast }) {
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/teams', { headers: { 'x-admin-password': adminPassword } })
+      .then((r) => r.json())
+      .then((data) => { setTeams(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { addToast('Failed to load teams', 'error'); setLoading(false); });
+  }, [adminPassword, addToast]);
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
+    setAdding(true);
+    try {
+      const res = await fetch('/api/teams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPassword },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) { addToast(data.error || 'Failed to add team', 'error'); return; }
+      setTeams(data.teams);
+      setNewName('');
+      addToast(`${name} added`, 'success');
+    } catch { addToast('Failed to add team', 'error'); }
+    finally { setAdding(false); }
+  };
+
+  const handleDelete = async (name) => {
+    if (!confirm(`Remove "${name}" from the roster?`)) return;
+    try {
+      const res = await fetch(`/api/teams/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': adminPassword },
+      });
+      if (!res.ok) throw new Error();
+      setTeams((prev) => prev.filter((t) => t !== name));
+      addToast(`${name} removed`, 'success');
+    } catch { addToast('Failed to remove team', 'error'); }
+  };
+
+  if (loading) return <div className="loading-wrap"><div className="spinner" /><span>Loading…</span></div>;
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-header"><h2>➕ Add Team</h2></div>
+        <div className="card-body">
+          <form onSubmit={handleAdd} style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              placeholder="Team name…"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoComplete="off"
+              style={{ flex: 1 }}
+            />
+            <button type="submit" className="btn btn-primary" disabled={adding || !newName.trim()}>
+              {adding ? '…' : 'Add'}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {teams.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">👥</div>
+          <p>No teams yet. Add teams above so judges can select them.</p>
+        </div>
+      ) : (
+        <div className="card">
+          <div className="card-header"><h2>👥 Team Roster ({teams.length})</h2></div>
+          <div className="card-body" style={{ padding: '0 16px' }}>
+            {teams.map((name) => (
+              <div key={name} className="criterion-row">
+                <span className="criterion-label" style={{ fontWeight: 600 }}>{name}</span>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => handleDelete(name)}
+                  style={{ marginLeft: 'auto' }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function LeaderboardTab({ adminPassword, addToast }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -503,6 +600,9 @@ export default function AdminPanel({ addToast }) {
         <button className={`admin-tab ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>
           🏆 Leaderboard
         </button>
+        <button className={`admin-tab ${tab === 'teams' ? 'active' : ''}`} onClick={() => setTab('teams')}>
+          👥 Teams
+        </button>
         <button className={`admin-tab ${tab === 'criteria' ? 'active' : ''}`} onClick={() => setTab('criteria')}>
           ✏️ Criteria
         </button>
@@ -513,6 +613,9 @@ export default function AdminPanel({ addToast }) {
       )}
       {tab === 'leaderboard' && (
         <LeaderboardTab adminPassword={adminPassword} addToast={addToast} />
+      )}
+      {tab === 'teams' && (
+        <TeamsTab adminPassword={adminPassword} addToast={addToast} />
       )}
       {tab === 'criteria' && (
         <>

@@ -86,6 +86,7 @@ function initScoreState(criteria) {
 const INITIAL_INFO = { teamName: '', judgeName: '' };
 
 export default function JudgeForm({ addToast }) {
+  const [teams, setTeams] = useState([]);
   const [scenarios, setScenarios] = useState([]);
   const [scenariosLoading, setScenariosLoading] = useState(true);
   const [selectedScenarioId, setSelectedScenarioId] = useState('');
@@ -99,6 +100,7 @@ export default function JudgeForm({ addToast }) {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
+    fetch('/api/teams').then((r) => r.json()).then((data) => setTeams(Array.isArray(data) ? data : [])).catch(() => {});
     fetch('/api/scenarios')
       .then((r) => r.json())
       .then((data) => {
@@ -212,16 +214,21 @@ export default function JudgeForm({ addToast }) {
         <div className="card-body">
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="teamName">Team Name *</label>
-              <input
+              <label htmlFor="teamName">Team *</label>
+              <select
                 id="teamName"
-                type="text"
-                placeholder="e.g. Team Alpha"
                 value={info.teamName}
                 onChange={(e) => setField('teamName', e.target.value)}
                 required
-                autoComplete="off"
-              />
+              >
+                <option value="">— Select a team —</option>
+                {teams.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {teams.length === 0 && (
+                <span style={{ fontSize: '0.78rem', color: 'var(--gray-400)' }}>
+                  No teams set up yet — ask admin to add teams.
+                </span>
+              )}
             </div>
             <div className="form-group">
               <label htmlFor="judgeName">Judge Name *</label>

@@ -383,6 +383,17 @@ const store = {
     if (kv) { await kv.set('scenarios', data); return; }
     fileWrite(SCENARIOS_FILE, data);
   },
+  async getTeams() {
+    if (kv) return (await kv.get('teams')) ?? [];
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    const f = path.join(DATA_DIR, 'teams.json');
+    if (!fs.existsSync(f)) fs.writeFileSync(f, JSON.stringify([], null, 2));
+    return JSON.parse(fs.readFileSync(f, 'utf-8'));
+  },
+  async setTeams(data) {
+    if (kv) { await kv.set('teams', data); return; }
+    fileWrite(path.join(DATA_DIR, 'teams.json'), data);
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -403,6 +414,32 @@ app.post('/api/admin/verify', (req, res) => {
   const { password } = req.body;
   if (password === ADMIN_PASSWORD) res.json({ success: true });
   else res.status(401).json({ error: 'Invalid password' });
+});
+
+app.get('/api/teams', async (req, res) => {
+  try { res.json(await store.getTeams()); }
+  catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
+app.post('/api/teams', requireAdmin, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    const teams = await store.getTeams();
+    if (teams.includes(name.trim())) return res.status(400).json({ error: 'Team already exists' });
+    teams.push(name.trim());
+    await store.setTeams(teams);
+    res.json({ success: true, teams });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
+app.delete('/api/teams/:name', requireAdmin, async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    const teams = await store.getTeams();
+    await store.setTeams(teams.filter((t) => t !== name));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
 app.get('/api/scenarios', async (req, res) => {
