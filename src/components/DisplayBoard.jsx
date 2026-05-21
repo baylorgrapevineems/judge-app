@@ -100,20 +100,11 @@ export default function DisplayBoard() {
 
                   {team.submissions.length > 0 && (
                     <div className="db-scenarios">
-                      {team.submissions.map((sub, i) => {
-                        const sp = sub.possible > 0
-                          ? (sub.net / sub.possible) * 100
-                          : 0;
-                        return (
-                          <div key={i} className="db-scenario-row">
-                            <span className="db-scenario-name">{(sub.scenario || '').replace(/^(Scenario\s+\d+).*/i, '$1') || `Scenario ${i + 1}`}</span>
-                            <span className="db-scenario-score">
-                              {sub.net} / {sub.possible}
-                              <span className="db-scenario-pct"> ({sp.toFixed(1)}%)</span>
-                            </span>
-                          </div>
-                        );
-                      })}
+                      <div className="db-scenario-row">
+                        <span className="db-scenario-name" style={{ color: 'var(--db-muted)' }}>
+                          {team.submissions.length} {team.submissions.length === 1 ? 'submission' : 'submissions'} scored
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
