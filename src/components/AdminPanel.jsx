@@ -160,6 +160,96 @@ function SubmissionCard({ sub, criteria, adminPassword, onDelete, addToast }) {
   );
 }
 
+function LeaderboardTab({ adminPassword, addToast }) {
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/submissions', { headers: { 'x-admin-password': adminPassword } })
+      .then((r) => r.json())
+      .then((data) => { setSubmissions(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { addToast('Failed to load submissions', 'error'); setLoading(false); });
+  }, [adminPassword, addToast]);
+
+  if (loading) return <div className="loading-wrap"><div className="spinner" /><span>Loading…</span></div>;
+
+  // Group by team name (case-insensitive)
+  const teamMap = {};
+  submissions.forEach((sub) => {
+    const key = (sub.teamName || 'Unknown').toLowerCase().trim();
+    if (!teamMap[key]) {
+      teamMap[key] = { teamName: sub.teamName || 'Unknown', submissions: [], totalNet: 0, totalPossible: 0 };
+    }
+    teamMap[key].submissions.push(sub);
+    teamMap[key].totalNet += sub.totals?.net ?? 0;
+    teamMap[key].totalPossible += sub.totals?.possible ?? 0;
+  });
+
+  const teams = Object.values(teamMap).sort((a, b) => {
+    const pa = a.totalPossible > 0 ? a.totalNet / a.totalPossible : 0;
+    const pb = b.totalPossible > 0 ? b.totalNet / b.totalPossible : 0;
+    return pb - pa;
+  });
+
+  if (teams.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">🏆</div>
+        <p>No submissions yet. Leaderboard will appear once scores are submitted.</p>
+      </div>
+    );
+  }
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  return (
+    <div>
+      <div className="alert alert-info" style={{ marginBottom: '16px' }}>
+        Top 2 teams advance to finals. Combined score = sum of all submitted scenario scores.
+      </div>
+      {teams.map((team, idx) => {
+        const rank = idx + 1;
+        const advances = rank <= 2;
+        const pct = team.totalPossible > 0 ? (team.totalNet / team.totalPossible) * 100 : 0;
+        const grade = pct >= 90 ? 'excellent' : pct >= 75 ? 'good' : pct >= 60 ? 'fair' : 'poor';
+        return (
+          <div key={team.teamName} className={`leaderboard-card ${advances ? 'leaderboard-advances' : ''}`}>
+            <div className="leaderboard-header">
+              <span className="leaderboard-medal">{medals[idx] ?? `#${rank}`}</span>
+              <div className="leaderboard-team-info">
+                <span className="leaderboard-team-name">{team.teamName}</span>
+                {advances && <span className="advances-badge">ADVANCES TO FINALS</span>}
+              </div>
+              <div className="leaderboard-combined">
+                <span className={`leaderboard-score score-${grade}`}>{team.totalNet}</span>
+                <span className="leaderboard-possible">/{team.totalPossible}</span>
+                <span className="leaderboard-pct">({pct.toFixed(1)}%)</span>
+              </div>
+            </div>
+            <div className="leaderboard-breakdown">
+              {team.submissions
+                .slice()
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+                .map((sub) => {
+                  const sNet = sub.totals?.net ?? 0;
+                  const sPoss = sub.totals?.possible ?? 0;
+                  const sPct = sPoss > 0 ? (sNet / sPoss) * 100 : 0;
+                  return (
+                    <div key={sub.id} className="leaderboard-sub-row">
+                      <span className="leaderboard-sub-scenario">{sub.scenario || 'Unknown Scenario'}</span>
+                      <span className="leaderboard-sub-score">{sNet} / {sPoss} &nbsp;<span className="leaderboard-sub-pct">({sPct.toFixed(1)}%)</span></span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SubmissionsTab({ adminPassword, criteriaMap, addToast }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -410,6 +500,9 @@ export default function AdminPanel({ addToast }) {
         <button className={`admin-tab ${tab === 'submissions' ? 'active' : ''}`} onClick={() => setTab('submissions')}>
           📋 Submissions
         </button>
+        <button className={`admin-tab ${tab === 'leaderboard' ? 'active' : ''}`} onClick={() => setTab('leaderboard')}>
+          🏆 Leaderboard
+        </button>
         <button className={`admin-tab ${tab === 'criteria' ? 'active' : ''}`} onClick={() => setTab('criteria')}>
           ✏️ Criteria
         </button>
@@ -417,6 +510,9 @@ export default function AdminPanel({ addToast }) {
 
       {tab === 'submissions' && (
         <SubmissionsTab adminPassword={adminPassword} criteriaMap={criteriaMap} addToast={addToast} />
+      )}
+      {tab === 'leaderboard' && (
+        <LeaderboardTab adminPassword={adminPassword} addToast={addToast} />
       )}
       {tab === 'criteria' && (
         <>

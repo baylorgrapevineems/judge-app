@@ -341,16 +341,53 @@ const DEFAULT_SCENARIOS = [
   },
 ];
 
-const ensureData = () => {
+// ---------------------------------------------------------------------------
+// Storage: Vercel KV (Redis) when env vars present, local files otherwise
+// ---------------------------------------------------------------------------
+const KV_ENABLED = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+let kv = null;
+if (KV_ENABLED) {
+  const mod = await import('@vercel/kv');
+  kv = mod.kv;
+}
+
+const fileRead = (file) => {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(SUBMISSIONS_FILE)) fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify([], null, 2));
-  if (!fs.existsSync(SCENARIOS_FILE)) fs.writeFileSync(SCENARIOS_FILE, JSON.stringify(DEFAULT_SCENARIOS, null, 2));
+  if (!fs.existsSync(file)) {
+    const init = file === SUBMISSIONS_FILE ? [] : DEFAULT_SCENARIOS;
+    fs.writeFileSync(file, JSON.stringify(init, null, 2));
+  }
+  return JSON.parse(fs.readFileSync(file, 'utf-8'));
 };
-ensureData();
+const fileWrite = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
 
-const readJSON = (file) => { ensureData(); return JSON.parse(fs.readFileSync(file, 'utf-8')); };
-const writeJSON = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
+const store = {
+  async getSubmissions() {
+    if (kv) return (await kv.get('submissions')) ?? [];
+    return fileRead(SUBMISSIONS_FILE);
+  },
+  async setSubmissions(data) {
+    if (kv) { await kv.set('submissions', data); return; }
+    fileWrite(SUBMISSIONS_FILE, data);
+  },
+  async getScenarios() {
+    if (kv) {
+      const d = await kv.get('scenarios');
+      if (d) return d;
+      await kv.set('scenarios', DEFAULT_SCENARIOS);
+      return DEFAULT_SCENARIOS;
+    }
+    return fileRead(SCENARIOS_FILE);
+  },
+  async setScenarios(data) {
+    if (kv) { await kv.set('scenarios', data); return; }
+    fileWrite(SCENARIOS_FILE, data);
+  },
+};
 
+// ---------------------------------------------------------------------------
+// Express app
+// ---------------------------------------------------------------------------
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -364,68 +401,77 @@ const requireAdmin = (req, res, next) => {
 
 app.post('/api/admin/verify', (req, res) => {
   const { password } = req.body;
-  if (password === ADMIN_PASSWORD) {
+  if (password === ADMIN_PASSWORD) res.json({ success: true });
+  else res.status(401).json({ error: 'Invalid password' });
+});
+
+app.get('/api/scenarios', async (req, res) => {
+  try {
+    const scenarios = await store.getScenarios();
+    res.json(scenarios.map(({ id, name, description }) => ({ id, name, description })));
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
+app.get('/api/criteria/:scenarioId', async (req, res) => {
+  try {
+    const scenarios = await store.getScenarios();
+    const scenario = scenarios.find((s) => s.id === req.params.scenarioId);
+    if (!scenario) return res.status(404).json({ error: 'Scenario not found' });
+    res.json({ sections: scenario.sections });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
+});
+
+app.put('/api/criteria/:scenarioId', requireAdmin, async (req, res) => {
+  try {
+    const scenarios = await store.getScenarios();
+    const idx = scenarios.findIndex((s) => s.id === req.params.scenarioId);
+    if (idx === -1) return res.status(404).json({ error: 'Scenario not found' });
+    scenarios[idx].sections = req.body.sections;
+    await store.setScenarios(scenarios);
     res.json({ success: true });
-  } else {
-    res.status(401).json({ error: 'Invalid password' });
-  }
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.get('/api/scenarios', (req, res) => {
-  const scenarios = readJSON(SCENARIOS_FILE);
-  res.json(scenarios.map(({ id, name, description }) => ({ id, name, description })));
+app.get('/api/submissions', requireAdmin, async (req, res) => {
+  try {
+    res.json(await store.getSubmissions());
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.get('/api/criteria/:scenarioId', (req, res) => {
-  const scenarios = readJSON(SCENARIOS_FILE);
-  const scenario = scenarios.find((s) => s.id === req.params.scenarioId);
-  if (!scenario) return res.status(404).json({ error: 'Scenario not found' });
-  res.json({ sections: scenario.sections });
+app.post('/api/submissions', async (req, res) => {
+  try {
+    const submissions = await store.getSubmissions();
+    const submission = { id: randomUUID(), timestamp: new Date().toISOString(), ...req.body };
+    submissions.push(submission);
+    await store.setSubmissions(submissions);
+    res.json({ success: true, id: submission.id });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.put('/api/criteria/:scenarioId', requireAdmin, (req, res) => {
-  const scenarios = readJSON(SCENARIOS_FILE);
-  const idx = scenarios.findIndex((s) => s.id === req.params.scenarioId);
-  if (idx === -1) return res.status(404).json({ error: 'Scenario not found' });
-  scenarios[idx].sections = req.body.sections;
-  writeJSON(SCENARIOS_FILE, scenarios);
-  res.json({ success: true });
+app.put('/api/submissions/:id', requireAdmin, async (req, res) => {
+  try {
+    const submissions = await store.getSubmissions();
+    const idx = submissions.findIndex((s) => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    submissions[idx] = { ...submissions[idx], ...req.body };
+    await store.setSubmissions(submissions);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.get('/api/submissions', requireAdmin, (req, res) => {
-  res.json(readJSON(SUBMISSIONS_FILE));
+app.delete('/api/submissions/:id', requireAdmin, async (req, res) => {
+  try {
+    const submissions = await store.getSubmissions();
+    await store.setSubmissions(submissions.filter((s) => s.id !== req.params.id));
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
-app.post('/api/submissions', (req, res) => {
-  const submissions = readJSON(SUBMISSIONS_FILE);
-  const submission = {
-    id: randomUUID(),
-    timestamp: new Date().toISOString(),
-    ...req.body,
-  };
-  submissions.push(submission);
-  writeJSON(SUBMISSIONS_FILE, submissions);
-  res.json({ success: true, id: submission.id });
-});
-
-app.put('/api/submissions/:id', requireAdmin, (req, res) => {
-  const submissions = readJSON(SUBMISSIONS_FILE);
-  const idx = submissions.findIndex((s) => s.id === req.params.id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  submissions[idx] = { ...submissions[idx], ...req.body };
-  writeJSON(SUBMISSIONS_FILE, submissions);
-  res.json({ success: true });
-});
-
-app.delete('/api/submissions/:id', requireAdmin, (req, res) => {
-  const submissions = readJSON(SUBMISSIONS_FILE);
-  writeJSON(SUBMISSIONS_FILE, submissions.filter((s) => s.id !== req.params.id));
-  res.json({ success: true });
-});
-
-app.delete('/api/submissions', requireAdmin, (req, res) => {
-  writeJSON(SUBMISSIONS_FILE, []);
-  res.json({ success: true });
+app.delete('/api/submissions', requireAdmin, async (req, res) => {
+  try {
+    await store.setSubmissions([]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
 export default app;
