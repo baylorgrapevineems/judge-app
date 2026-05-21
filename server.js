@@ -468,10 +468,14 @@ app.delete('/api/teams/:name', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
+const FINALS_ONLY_IDS = new Set(['s4']);
+
 app.get('/api/scenarios', async (req, res) => {
   try {
     const scenarios = await store.getScenarios();
-    res.json(scenarios.map(({ id, name, description }) => ({ id, name, description })));
+    res.json(scenarios.map(({ id, name, description }) => ({
+      id, name, description, finalsOnly: FINALS_ONLY_IDS.has(id),
+    })));
   } catch (e) { res.status(500).json({ error: 'Storage error' }); }
 });
 
